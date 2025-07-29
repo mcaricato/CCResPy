@@ -1,0 +1,102 @@
+CCResPy is a Python code to compute the CCSD linear response function
+for molecular and 1D periodic systems.
+
+This program is licensed under the terms of the GNU General Public
+License v3.0 or later
+
+In version v1.0.0, only the electric dipole-electric dipole
+polarizability in the length gauge is implemented.
+
+------------------------------------------------------------------
+Python and Numpy Versions:
+It has been tested with Python v3.11-12 and NumPy v1.24-26
+
+------------------------------------------------------------------
+Generating HF data:
+CCResPy reads the reference HF wave function info from a GAUSSIAN job,
+either molecular or 1D periodic, using the "gauopen" functionality
+(visit the Gaussian, Inc., website for information about how to
+install gauopen). See the example Gaussian input files for how to
+generate the binary array file (baf) that contains the needed
+information: "Mol_Baf.gjf" and "PBC_Baf.gjf".
+
+0) Insert the gauopen path in the readgau.py and ccres_read.py
+files. Search for the "GAUOPEN path" comment.
+
+1) To generate the reference data once the baf file is available, run:
+  python3 readgau.py <namefile>.baf <namefile>
+
+  This will generate a <namefile>_txts directory with all the necessary
+  files.
+
+2) For the 1D PBC case, another file with the translation vector
+is needed. To generate it, run:
+  echo "X.X X.X X.X" > <namefile>_txts/tv.txt
+
+  This will generate the tv.txt file containing the vector's coordinates
+  in Angstrom (e.g., same as the Tv coordinates in "PBC_Baf.gjf").
+
+3) For 1D PBC, the two electron integrals (2ERIs) must be generated
+from a molecular calculation in GAUSSIAN and stored in a different baf
+file. The geometry must be built as:
+  Cell 0
+  Cell +1
+  Cell -1
+  Cell +2
+  Cell -2
+  etc.
+
+  The total number of cells must equal NMtPBC as in the PBC job that
+  generates the baf file in point 1. See the example test job
+  "2ERI.gjf" for how to build a geometry corresponding to the
+  "PBC_Baf.gjf" job file.  The 2ERIs will be read directly from the
+  this baf.
+
+-------------------------------------------------------------------
+Creating the scratch directory:
+
+Create a scractch directory for the CCResPy scratch files and insert
+the path in the ccres.py file. Search for "Scratch path"
+
+-------------------------------------------------------------------
+Modifying CCResPy defaults:
+In this first version, all thresholds are hardwired and must be
+modified directly in the ccres.py file. Newer versions of the program
+will include an input file parser to modify these values.
+
+Useful variables:
+- ThrE: energy convergence threshold (set to 1e-08)
+- MaxIt: max number of allowed iterations (set to 1000)
+- Wlist: list of wavelengths for LR calculations (current set includes
+  1000, 700, 600, 500, 300nm)
+- MaxD: dimension+1 of the DIIS subspace (set to 6 for a subspace of
+  dimension 5)
+- RepD: interval of iterations for DIIS extrapolation (set to 5, i.e.,
+  a DIIS extrapolation every 5 regular iterations).
+
+-------------------------------------------------------------------
+Running a CCResPy job:
+
+Molecular case, run:
+  python3 ccres.py <namefile> <namefile>.baf
+
+  This will read the information from the directory "<namefile>_txts"
+  and the 2ERIs from the <namefile>.baf file.
+
+1D case, run:
+  python3 ccres.py <namefile> 2ERI.baf
+
+  This will read the information from the directory "<namefile>_txts"
+  and the 2ERIs from the 2ERI.baf file generated as in point 3)
+  above. The file name, including that of the 2ERIs are arbitrary and
+  can be changed.
+
+On Linux machines, a maximum memory limit can be specified as a third
+argument, in GB:
+  python3 ccres.py <namefile> 2ERI.baf 200
+
+  This imposes a hard limit of 200GB on memory allocation and usage.
+
+In all cases, a <namefile>.txt output file will be created with the
+results of the calculation.
+
