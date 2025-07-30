@@ -1,0 +1,11 @@
+#p hf/3-21g output=(baf,file(746,(733,int)))  test pbc=(nrecip=5) int=acc2e=14
+
+H2 chain
+
+0 1
+ 1           0       -0.370000    0.000000    0.000000
+ 1           0        0.370000    0.000000    0.000000
+ Tv          0        3.0 0.0 0.0
+
+h2_example_pbc.baf
+

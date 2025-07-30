@@ -84,19 +84,34 @@ Molecular case, run:
   and the 2ERIs from the <namefile>.baf file.
 
 1D case, run:
-  python3 ccres.py <namefile> 2ERI.baf
+  python3 ccres.py <namefile> <2ERI_file>.baf
 
   This will read the information from the directory "<namefile>_txts"
-  and the 2ERIs from the 2ERI.baf file generated as in point 3)
+  and the 2ERIs from the <2ERI_file>.baf file generated as in point 3)
   above. The file name, including that of the 2ERIs are arbitrary and
   can be changed.
 
 On Linux machines, a maximum memory limit can be specified as a third
 argument, in GB:
-  python3 ccres.py <namefile> 2ERI.baf 200
+  python3 ccres.py <namefile>  <2ERI_file>.baf 200
 
   This imposes a hard limit of 200GB on memory allocation and usage.
 
 In all cases, a <namefile>.txt output file will be created with the
 results of the calculation.
+
+-------------------------------------------------------------------
+Example folder
+
+The examples folder contains example files for the GAUSSIAN jobs to
+generate the bafs and the corresponding CCResPy output examples.
+
+GAUSSIAN input job files:
+- Mol_Baf.gjf: GAUSSIAN job file for a molecular calculation.
+- PBC_Baf.gjf: GAUSSIAN job file for a 1D PBC calculation.
+- 2ERI.gjf: GAUSSIAN job file to generate the 2ERIs the PBC_Baf example
+
+CResPy output files:
+- h2_example_mol.txt: output file for a molecular calculation
+- h2_example_pbc.txt: output file for a PBC calculation
 
