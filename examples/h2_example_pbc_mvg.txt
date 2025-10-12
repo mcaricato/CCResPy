@@ -1,0 +1,332 @@
+CCResPy PROGRAM 
+10/07/2025 15:52:11 
+Platform: Darwin -- Python v3.11.5 -- NumPy v1.24.3
+Total Memory: 48.00GB, Available Memory: 21.67GB 
+
+Energy convergence threshold: 1.0e-08au -- Max N Iterations: 1000
+Orbitals Information:
+N-Occ. Alpha: 1, Beta: 1 -- N-Vir. Alpha: 3, Beta: 3
+N-frozen core: 0 -- N-frozen virtuals: 0
+PBC Information: N-cells: 37 -- N-k points: 4
+                 Edge and Gamma points are included
+
+Read MO Coeff and Fock Matrix, Time: 0.04s, AvlMem: 21.67GB 
+Read AO 2ERI, Time: 1.14s, AvlMem: 21.67GB 
+2ERI AO->MO, Time: 0.26s, AvlMem: 21.37GB 
+Compute energy denominators, Time: 0.08s, AvlMem: 21.37GB
+T guess, Time: 0.00s, AvlMem: 21.37GB
+****************************************************
+*          SOLVING CCSD T AMPLITUDE EQS.           *
+****************************************************
+E(SCF)= = -1.3061080175au, DE(MP2) = -0.0155091687au, E(MP2) = -1.3216171862au
+Iter.  DIIS     DE-T(au)    Delta-DE(au)    Time(s)
+   1     F   -0.0212434080     -2.12e-02       0.14
+   2     F   -0.0234961825     -2.25e-03       0.31
+   3     F   -0.0244325336     -9.36e-04       0.14
+   4     F   -0.0248394021     -4.07e-04       0.21
+   5     T   -0.0250221122     -1.83e-04       0.29
+   6     F   -0.0251812079     -1.59e-04       0.02
+   7     F   -0.0251813098     -1.02e-07       0.22
+   8     F   -0.0251813519     -4.21e-08       0.29
+   9     F   -0.0251813698     -1.79e-08       0.10
+  10     T   -0.0251813777     -7.92e-09       0.26
+E(T) = -1.3312893953au 
+T amplitude equations converged in 2.19s, AvlMem: 21.28 GB
+
+Constant intermediates evaluated, Time: 0.24s, AvlMem: 21.28GB
+****************************************************
+*        SOLVING CCSD Lambda AMPLITUDE EQS.        *
+****************************************************
+Iter.  DIIS     DE-L(au)    Delta-DE(au)    Time(s)
+   1     F   -0.0249436952     -2.49e-02       0.16
+   2     F   -0.0248575706     +8.61e-05       0.05
+   3     F   -0.0248240684     +3.35e-05       0.07
+   4     F   -0.0248102765     +1.38e-05       0.08
+   5     T   -0.0248043462     +5.93e-06       0.19
+   6     F   -0.0247994696     +4.88e-06       0.02
+   7     F   -0.0247994625     +7.08e-09       0.12
+L amplitude equations converged in 0.88s, AvlMem: 21.28 GB
+
+****************************************************
+*           COMPUTING CCSD LR FUNCTION             *
+****************************************************
+Reading perturbation DipEV
+Perturbation integrals read, Time: 0.13s, AvlMem: 21.28GB
+
+****************************************************
+ Start Linear Response Calculation for Frequency 0.000000
+
+Right hand side evaluated, Time: 0.09s, AvlMem: 21.29GB
+
+ Perturbation DipEV-1
+
+ Frequency +0.000000
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.6788975390     -6.79e-01       0.26
+   2     F   -0.7823809040     -1.03e-01       0.09
+   3     F   -0.8341956972     -5.18e-02       0.16
+   4     F   -0.8606893904     -2.65e-02       0.04
+   5     T   -0.8744274505     -1.37e-02       0.30
+   6     F   -0.8897453426     -1.53e-02       0.02
+   7     F   -0.8897405345     +4.81e-06       0.12
+   8     F   -0.8897382270     +2.31e-06       0.14
+   9     F   -0.8897370693     +1.16e-06       0.04
+  10     T   -0.8897364944     +5.75e-07       0.09
+  11     F   -0.8897359126     +5.82e-07       0.02
+  12     F   -0.8897359155     -2.88e-09       0.07
+Tx amplitude equations converged in 1.69s, AvlMem: 21.28 GB
+
+Xi terms evaluated, Time: 0.05s, AvlMem: 21.28GB
+Rho evaluated, Time: 0.01s, AvlMem: 21.29GB
+
+ DipE(MVG)-DipE(MVG) (Unphysical) Static Polarizability in a.u.
+ 1 +1.742080 -0.000000 +0.000000
+ 2 -0.000000 -0.000000 -0.000000
+ 3 -0.000000 -0.000000 -0.000000
+
+****************************************************
+ Start Linear Response Calculation for Frequency 0.045563
+
+Right hand side evaluated, Time: 0.01s, AvlMem: 21.29GB
+
+ Perturbation DipEV-1
+
+ Frequency +0.045563
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.6419638968     -6.42e-01       0.04
+   2     F   -0.7328977687     -9.09e-02       0.07
+   3     F   -0.7765448805     -4.36e-02       0.05
+   4     F   -0.7979581624     -2.14e-02       0.07
+   5     T   -0.8086200658     -1.07e-02       0.09
+   6     F   -0.8195666052     -1.09e-02       0.02
+   7     F   -0.8195627498     +3.86e-06       0.08
+   8     F   -0.8195609876     +1.76e-06       0.04
+   9     F   -0.8195601439     +8.44e-07       0.08
+  10     T   -0.8195597420     +4.02e-07       0.14
+  11     F   -0.8195593615     +3.80e-07       0.03
+  12     F   -0.8195593651     -3.53e-09       0.23
+Tx amplitude equations converged in 1.04s, AvlMem: 21.31 GB
+
+ Frequency -0.045563
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.7201664040     -7.20e-01       0.08
+   2     F   -0.8386666854     -1.19e-01       0.08
+   3     F   -0.9006947860     -6.20e-02       0.11
+   4     F   -0.9338215143     -3.31e-02       0.06
+   5     T   -0.9517499117     -1.79e-02       0.09
+   6     F   -0.9736481927     -2.19e-02       0.02
+   7     F   -0.9736421705     +6.02e-06       0.06
+   8     F   -0.9736391257     +3.04e-06       0.04
+   9     F   -0.9736375215     +1.60e-06       0.21
+  10     T   -0.9736366903     +8.31e-07       0.08
+  11     F   -0.9736357908     +8.99e-07       0.03
+  12     F   -0.9736357906     +2.53e-10       0.13
+Tx amplitude equations converged in 1.07s, AvlMem: 21.30 GB
+
+Xi terms evaluated, Time: 0.07s, AvlMem: 21.31GB
+Rho evaluated, Time: 0.01s, AvlMem: 21.30GB
+Rho evaluated, Time: 0.01s, AvlMem: 21.30GB
+
+ DipE(MVG)-DipE(MVG) Polarizability in a.u. for W = 0.045563 a.u.
+ Static limit removed
+ 1 +6.469002 -0.000000 +0.000000
+ 2 -0.000000 -0.000000 -0.000000
+ 3 -0.000000 -0.000000 -0.000000
+
+****************************************************
+ Start Linear Response Calculation for Frequency 0.065091
+
+Right hand side evaluated, Time: 0.01s, AvlMem: 21.30GB
+
+ Perturbation DipEV-1
+
+ Frequency +0.065091
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.6273000510     -6.27e-01       0.06
+   2     F   -0.7134847385     -8.62e-02       0.12
+   3     F   -0.7541344834     -4.06e-02       0.05
+   4     F   -0.7737388870     -1.96e-02       0.04
+   5     T   -0.7833376813     -9.60e-03       0.12
+   6     F   -0.7928720605     -9.53e-03       0.03
+   7     F   -0.7928685481     +3.51e-06       0.04
+   8     F   -0.7928669745     +1.57e-06       0.04
+   9     F   -0.7928662354     +7.39e-07       0.03
+  10     T   -0.7928658895     +3.46e-07       0.13
+  11     F   -0.7928655712     +3.18e-07       0.02
+  12     F   -0.7928655746     -3.46e-09       0.07
+Tx amplitude equations converged in 0.88s, AvlMem: 21.31 GB
+
+ Frequency -0.065091
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.7393691877     -7.39e-01       0.04
+   2     F   -0.8652142152     -1.26e-01       0.03
+   3     F   -0.9324004478     -6.72e-02       0.04
+   4     F   -0.9689837999     -3.66e-02       0.04
+   5     T   -0.9891639684     -2.02e-02       0.20
+   6     F   -1.0148746384     -2.57e-02       0.02
+   7     F   -1.0148679996     +6.64e-06       0.11
+   8     F   -1.0148645635     +3.44e-06       0.07
+   9     F   -1.0148627136     +1.85e-06       0.06
+  10     T   -1.0148617372     +9.76e-07       0.08
+  11     F   -1.0148606499     +1.09e-06       0.02
+  12     F   -1.0148606470     +2.93e-09       0.07
+Tx amplitude equations converged in 0.96s, AvlMem: 21.31 GB
+
+Xi terms evaluated, Time: 0.05s, AvlMem: 21.31GB
+Rho evaluated, Time: 0.03s, AvlMem: 21.31GB
+Rho evaluated, Time: 0.02s, AvlMem: 21.31GB
+
+ DipE(MVG)-DipE(MVG) Polarizability in a.u. for W = 0.065091 a.u.
+ Static limit removed
+ 1 +6.526121 -0.000000 +0.000000
+ 2 -0.000000 -0.000000 -0.000000
+ 3 -0.000000 -0.000000 -0.000000
+
+****************************************************
+ Start Linear Response Calculation for Frequency 0.075939
+
+Right hand side evaluated, Time: 0.01s, AvlMem: 21.31GB
+
+ Perturbation DipEV-1
+
+ Frequency +0.075939
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.6194303794     -6.19e-01       0.04
+   2     F   -0.7031210309     -8.37e-02       0.08
+   3     F   -0.7422182705     -3.91e-02       0.04
+   4     F   -0.7608983347     -1.87e-02       0.05
+   5     T   -0.7699610446     -9.06e-03       0.22
+   6     F   -0.7788037498     -8.84e-03       0.04
+   7     F   -0.7788004133     +3.34e-06       0.29
+   8     F   -0.7787989347     +1.48e-06       0.06
+   9     F   -0.7787982475     +6.87e-07       0.19
+  10     T   -0.7787979290     +3.18e-07       0.30
+  11     F   -0.7787976404     +2.89e-07       0.02
+  12     F   -0.7787976438     -3.36e-09       0.25
+Tx amplitude equations converged in 1.83s, AvlMem: 21.29 GB
+
+ Frequency -0.075939
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.7504693421     -7.50e-01       0.28
+   2     F   -0.8806633285     -1.30e-01       0.28
+   3     F   -0.9509518183     -7.03e-02       0.15
+   4     F   -0.9896461457     -3.87e-02       0.15
+   5     T   -1.0112223197     -2.16e-02       0.08
+   6     F   -1.0393889000     -2.82e-02       0.02
+   7     F   -1.0393818908     +7.01e-06       0.20
+   8     F   -1.0393782145     +3.68e-06       0.04
+   9     F   -1.0393762108     +2.00e-06       0.21
+  10     T   -1.0393751424     +1.07e-06       0.28
+  11     F   -1.0393739336     +1.21e-06       0.04
+  12     F   -1.0393739287     +4.90e-09       0.05
+Tx amplitude equations converged in 1.83s, AvlMem: 21.34 GB
+
+Xi terms evaluated, Time: 0.05s, AvlMem: 21.33GB
+Rho evaluated, Time: 0.02s, AvlMem: 21.33GB
+Rho evaluated, Time: 0.01s, AvlMem: 21.33GB
+
+ DipE(MVG)-DipE(MVG) Polarizability in a.u. for W = 0.075939 a.u.
+ Static limit removed
+ 1 +6.567223 -0.000000 +0.000000
+ 2 -0.000000 -0.000000 -0.000000
+ 3 -0.000000 -0.000000 -0.000000
+
+****************************************************
+ Start Linear Response Calculation for Frequency 0.091127
+
+Right hand side evaluated, Time: 0.02s, AvlMem: 21.33GB
+
+ Perturbation DipEV-1
+
+ Frequency +0.091127
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.6087288121     -6.09e-01       0.24
+   2     F   -0.6890892801     -8.04e-02       0.03
+   3     F   -0.7261373040     -3.70e-02       0.16
+   4     F   -0.7436109815     -1.75e-02       0.29
+   5     T   -0.7519817224     -8.37e-03       0.28
+   6     F   -0.7599526125     -7.97e-03       0.02
+   7     F   -0.7599495061     +3.11e-06       0.20
+   8     F   -0.7599481500     +1.36e-06       0.12
+   9     F   -0.7599475288     +6.21e-07       0.14
+  10     T   -0.7599472447     +2.84e-07       0.29
+  11     F   -0.7599469929     +2.52e-07       0.03
+  12     F   -0.7599469961     -3.20e-09       0.05
+Tx amplitude equations converged in 2.05s, AvlMem: 21.60 GB
+
+ Frequency -0.091127
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.7665592044     -7.67e-01       0.14
+   2     F   -0.9031913394     -1.37e-01       0.23
+   3     F   -0.9781359965     -7.49e-02       0.09
+   4     F   -1.0200418316     -4.19e-02       0.14
+   5     T   -1.0437703037     -2.37e-02       0.29
+   6     F   -1.0758579025     -3.21e-02       0.01
+   7     F   -1.0758503397     +7.56e-06       0.07
+   8     F   -1.0758462969     +4.04e-06       0.18
+   9     F   -1.0758440551     +2.24e-06       0.10
+  10     T   -1.0758428425     +1.21e-06       0.27
+  11     F   -1.0758414395     +1.40e-06       0.05
+  12     F   -1.0758414312     +8.30e-09       0.29
+Tx amplitude equations converged in 2.16s, AvlMem: 21.55 GB
+
+Xi terms evaluated, Time: 0.05s, AvlMem: 21.66GB
+Rho evaluated, Time: 0.01s, AvlMem: 21.66GB
+Rho evaluated, Time: 0.01s, AvlMem: 21.66GB
+
+ DipE(MVG)-DipE(MVG) Polarizability in a.u. for W = 0.091127 a.u.
+ Static limit removed
+ 1 +6.636596 -0.000000 +0.000000
+ 2 -0.000000 -0.000000 -0.000000
+ 3 -0.000000 -0.000000 -0.000000
+
+****************************************************
+ Start Linear Response Calculation for Frequency 0.151878
+
+Right hand side evaluated, Time: 0.01s, AvlMem: 21.66GB
+
+ Perturbation DipEV-1
+
+ Frequency +0.151878
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.5692847619     -5.69e-01       0.45
+   2     F   -0.6379811009     -6.87e-02       0.18
+   3     F   -0.6680766045     -3.01e-02       0.06
+   4     F   -0.6815819555     -1.35e-02       0.16
+   5     T   -0.6877440429     -6.16e-03       0.29
+   6     F   -0.6931010243     -5.36e-03       0.05
+   7     F   -0.6930986779     +2.35e-06       0.06
+   8     F   -0.6930977102     +9.68e-07       0.10
+   9     F   -0.6930972910     +4.19e-07       0.11
+  10     T   -0.6930971090     +1.82e-07       0.29
+  11     F   -0.6930969609     +1.48e-07       0.03
+  12     F   -0.6930969632     -2.36e-09       0.13
+Tx amplitude equations converged in 2.08s, AvlMem: 21.74 GB
+
+ Frequency -0.151878
+Iter.  DIIS     DE-Tx(au)    Delta-DE(au)    Time(s)
+   1     F   -0.8381317823     -8.38e-01       0.13
+   2     F   -1.0053234436     -1.67e-01       0.27
+   3     F   -1.1033417444     -9.80e-02       0.22
+   4     F   -1.1618563608     -5.85e-02       0.23
+   5     T   -1.1971979805     -3.53e-02       0.30
+   6     F   -1.2531102298     -5.59e-02       0.01
+   7     F   -1.2531000435     +1.02e-05       0.09
+   8     F   -1.2530941401     +5.90e-06       0.05
+   9     F   -1.2530906236     +3.52e-06       0.09
+  10     T   -1.2530886117     +2.01e-06       0.17
+  11     F   -1.2530860685     +2.54e-06       0.02
+  12     F   -1.2530860396     +2.89e-08       0.29
+  13     F   -1.2530860305     +9.08e-09       0.27
+Tx amplitude equations converged in 2.51s, AvlMem: 21.71 GB
+
+Xi terms evaluated, Time: 0.05s, AvlMem: 21.70GB
+Rho evaluated, Time: 0.02s, AvlMem: 21.70GB
+Rho evaluated, Time: 0.09s, AvlMem: 21.70GB
+
+ DipE(MVG)-DipE(MVG) Polarizability in a.u. for W = 0.151878 a.u.
+ Static limit removed
+ 1 +7.072421 -0.000000 +0.000000
+ 2 -0.000000 -0.000000 -0.000000
+ 3 -0.000000 -0.000000 -0.000000
+Total Calculation Time: 26.14s
