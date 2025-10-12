@@ -1,4 +1,4 @@
-#p hf/3-21g output=(baf)  noraff  test int=acc2e=14 nosymm scf=conventional 
+#p hf/3-21g output=(baf)  noraff  test int=acc2e=14 nosymm scf=conventional extralink=l308
 
 H2 molecule
  

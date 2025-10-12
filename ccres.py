@@ -210,14 +210,17 @@ with open(f"{molecule}.txt","a") as writer:
   writer.write("****************************************************\n")
   writer.write("*           COMPUTING CCSD LR FUNCTION             *\n")
   writer.write("****************************************************\n")
-PertType = "DipE"
+#PertType = "DipE"
+PertType = "DipEV"
+PertSymm = "Symm"
+if(PertType == "DipEV"): PertSymm = "ASymm"
 NP, X_ij, X_ia, X_ab = getPert(O,V,NB,ipbc,MOCoef,Fock,PertType,molecule)
 tot_mem, avlb_mem = mem_check()
 with open(f"{molecule}.txt","a") as writer:
   writer.write(f"Perturbation integrals read, Time: {time.time()-start:.2f}s, AvlMem: {avlb_mem:.2f}GB\n")
 # For now, hardwire frequency of 300 nm or 500nm
 Wlist = []
-#Wlist.append(0.0)
+if(PertType == "DipEV"): Wlist.append(0.0)
 Wlist.append(0.045563352535238417) # 1000nm
 Wlist.append(0.065090503621769158) # 700nm
 Wlist.append(0.075938920892064027) # 600nm
@@ -246,7 +249,7 @@ for iw in range(len(Wlist)):
     MaxX[ip] = max(MaxIJr,MaxIJi,MaxIAr,MaxIAi,MaxABr,MaxABi)
     if(MaxX[ip] > 1e-15):
       start=time.time()
-      rhs1, rhs2 = pert_rhs(1, Nkp, O2k, V2k, t1, t2, X_ij[ip,:,:], X_ia[ip,:,:], X_ab[ip,:,:])
+      rhs1, rhs2 = pert_rhs(1, PertSymm, Nkp, O2k, V2k, t1, t2, X_ij[ip,:,:], X_ia[ip,:,:], X_ab[ip,:,:])
       tot_mem, avlb_mem = mem_check()
       with open(f"{molecule}.txt","a") as writer:
         writer.write(f"Right hand side evaluated, Time: {time.time()-start:.2f}s, AvlMem: {avlb_mem:.2f}GB\n")
@@ -270,6 +273,10 @@ for iw in range(len(Wlist)):
                                                        F_me,rhs1,rhs2,D1,D2,t1,t2,l1,l2,
                                                        tx1[ip,ipmw,:,:],
                                                        tx2[ip,ipmw,:,:,:,:],ipbc)
+      if(NW == 1):
+        # This is a static case. Make a copy of the amplitudes for the -W case.
+        tx1[ip,1,:,:] = np.copy(tx1[ip,0,:,:])
+        tx2[ip,1,:,:,:,:] = np.copy(tx2[ip,0,:,:,:,:])
   #
   # Now that we have all the Tx amplitudes for this W, we can compute
   # the corresponding Xi amplitudes and contract with all other Tx
@@ -302,15 +309,40 @@ for iw in range(len(Wlist)):
           writer.write(f"Rho evaluated, Time: {time.time()-start:.2f}s, AvlMem: {avlb_mem:.2f}GB\n")
         for ipa in range(NP):
           # Contract 1PDM(ip) with Pert(ipa)
-          tensor[iw,ip,ipa] += np.einsum('ij,ij->',np.conjugate(X_ij[ipa,:,:]),rho1[:O2k,:O2k],optimize=True)/Nkp 
-          tensor[iw,ip,ipa] += np.einsum('ia,ia->',np.conjugate(X_ia[ipa,:,:]),rho1[:O2k,O2k:],optimize=True)/Nkp   
-          tensor[iw,ip,ipa] += np.einsum('ab,ab->',np.conjugate(X_ab[ipa,:,:]),rho1[O2k:,O2k:],optimize=True)/Nkp   
+          f_static = 1
+          if(PertType == "DipEV" and iw == 0): f_static = 2
+          tensor[iw,ip,ipa] += f_static*np.einsum('ia,ia->',np.conjugate(X_ia[ipa,:,:]),rho1[:O2k,O2k:],optimize=True)/Nkp   
+          if(PertType == "DipE"):
+            tensor[iw,ip,ipa] += f_static*np.einsum('ij,ij->',np.conjugate(X_ij[ipa,:,:]),rho1[:O2k,:O2k],optimize=True)/Nkp 
+            tensor[iw,ip,ipa] += f_static*np.einsum('ab,ab->',np.conjugate(X_ab[ipa,:,:]),rho1[O2k:,O2k:],optimize=True)/Nkp   
+          elif(PertType == "DipEV"):
+            tensor[iw,ip,ipa] += f_static*np.einsum('ji,ij->',X_ij[ipa,:,:],rho1[:O2k,:O2k],optimize=True)/Nkp 
+            tensor[iw,ip,ipa] += f_static*np.einsum('ba,ab->',X_ab[ipa,:,:],rho1[O2k:,O2k:],optimize=True)/Nkp   
+#
   # Print the tensor for frequency W
-  with open(f"{molecule}.txt","a") as writer:
-    writer.write(f"\n DipE(LG)-DipE(LG) Polarizability in a.u. for W = {W:.6f} a.u.\n")
-  for ip in range(NP):
+  if(PertType == "DipE"):
     with open(f"{molecule}.txt","a") as writer:
-      writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+      writer.write(f"\n DipE(LG)-DipE(LG) Polarizability in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(NP):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+  elif(PertType == "DipEV" and iw>0):
+    # For velocity gauge tensors, remove static limit before printing
+    tensor[iw,:,:] -= tensor[0,:,:]
+    # Then divide by frequency squared
+    tensor[iw,:,:] /= -W**2
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n DipE(MVG)-DipE(MVG) Polarizability in a.u. for W = {W:.6f} a.u.\n")
+      writer.write(f" Static limit removed\n")
+    for ip in range(NP):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+  elif(PertType == "DipEV" and iw==0):
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n DipE(MVG)-DipE(MVG) (Unphysical) Static Polarizability in a.u.\n")
+    for ip in range(NP):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {-tensor[iw,ip,0].real:+.6f} {-tensor[iw,ip,1].real:+.6f} {-tensor[iw,ip,2].real:+.6f}\n")
 with open(f"{molecule}.txt","a") as writer:
   writer.write(f"Total Calculation Time: {time.time()-start0:.2f}s\n")
 # Delete scratch files

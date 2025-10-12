@@ -4,8 +4,8 @@ for molecular and 1D periodic systems.
 This program is licensed under the terms of the GNU General Public
 License v3.0 or later
 
-In version v1.0.0, only the electric dipole-electric dipole
-polarizability in the length gauge is implemented.
+In version v1.1.0, the electric dipole-electric dipole
+polarizability in the length and velocity gauges is implemented.
 
 ------------------------------------------------------------------
 Python and Numpy Versions:
@@ -24,13 +24,13 @@ information: "Mol_Baf.gjf" and "PBC_Baf.gjf".
 files. Search for the "GAUOPEN path" comment.
 
 1) To generate the reference data once the baf file is available, run:
-  python3 readgau.py <namefile>.baf <namefile>
+python3 readgau.py <namefile>.baf <namefile>
 
   This will generate a <namefile>_txts directory with all the necessary
   files.
 
-2) For the 1D PBC case, another file with the translation vector
-is needed. To generate it, run:
+2) For the 1D PBC case with the length gauge, another file with the
+translation vector is needed. To generate it, run:
   echo "X.X X.X X.X" > <namefile>_txts/tv.txt
 
   This will generate the tv.txt file containing the vector's coordinates
@@ -73,18 +73,23 @@ Useful variables:
   dimension 5)
 - RepD: interval of iterations for DIIS extrapolation (set to 5, i.e.,
   a DIIS extrapolation every 5 regular iterations).
+- PertType: "DipE" for length gauge electric dipole or "DipEV" for
+  velocity gauge electric dipole.
 
 -------------------------------------------------------------------
 Running a CCResPy job:
 
+Select PertType = DipE for length gauge (LG) or = DipEV for modified
+velocity gauge (MVG)
+
 Molecular case, run:
-  python3 ccres.py <namefile> <namefile>.baf
+  python3 ccres.py <namefile> <namefile>
 
   This will read the information from the directory "<namefile>_txts"
   and the 2ERIs from the <namefile>.baf file.
 
 1D case, run:
-  python3 ccres.py <namefile> <2ERI_file>.baf
+  python3 ccres.py <namefile> <2ERI_file>
 
   This will read the information from the directory "<namefile>_txts"
   and the 2ERIs from the <2ERI_file>.baf file generated as in point 3)
@@ -112,6 +117,8 @@ GAUSSIAN input job files:
 - 2ERI.gjf: GAUSSIAN job file to generate the 2ERIs the PBC_Baf example
 
 CResPy output files:
-- h2_example_mol.txt: output file for a molecular calculation
-- h2_example_pbc.txt: output file for a PBC calculation
+- h2_example_mol_lg.txt: output file for a LG molecular calculation
+- h2_example_pbc_lg.txt: output file for a LG PBC calculation
+- h2_example_mol_mvg.txt: output file for a MVG molecular calculation
+- h2_example_pbc_mvg.txt: output file for a MVG PBC calculation
 

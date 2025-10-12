@@ -120,6 +120,13 @@ def main():
     dip_r = baf.matlist["DIPOLE INTEGRALS"].array
     with open(f"{mol}_txts/dipole_r.txt","w") as writer:
       writer.write(str(dip_r))
+
+  # Dipole integrals, velocity gauge
+  if "DIP VEL INTEGRALS" in baf.matlist:
+    dip_r = baf.matlist["DIP VEL INTEGRALS"].array
+    with open(f"{mol}_txts/dipole_v.txt","w") as writer:
+      writer.write(str(dip_r))
+
   
 main()
 

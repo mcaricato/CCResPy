@@ -732,57 +732,91 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
     else:
       print(f" No electric dipole integrals found\n")
       exit()
+  elif(pert_type == "DipEV"):
+    if(f"{mol}_txts/dipole_v.txt"):
+      with open(f"{mol}_txts/dipole_v.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      ind = 0
+      AOPert = np.zeros((3*nttx))
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+      NP = 3
+      AOPert = AOPert.reshape(NP,nttx)
+    else:
+      print(f" No velocity electric dipole integrals found\n")
+      exit()
   else:
     print(f" Perturbation ",pert_type," is not available")
     exit()
   if(ipbc):
     # PBC case
     #
-    # Read translation vector
-    if(f"{mol}_txts/tv.txt"):
-      with open(f"{mol}_txts/tv.txt","r") as reader:
-        text=[]
-        for line in reader:
-          text.append(line.split())
-      tv = np.zeros((3))
-      tv[0] = float(text[0][0])
-      tv[1] = float(text[0][1])
-      tv[2] = float(text[0][2])
-      # Convert to Bohr
-      bohr_radius = physical_constants["Bohr radius"][0]
-      tv = np.array(tv)*angstrom / bohr_radius
-    else:
-      print(f" Translation vector is not available")
-      exit()
-    #
-    # dF/dk = F'
-    FockDk = getFock(mol,O,V,NB,ipbc,"MO",True,MOCoef)
-    #
-    # dS/dk = S'
-    OvlDk = getOvl(mol,O,V,NB,ipbc,"MO",True,MOCoef)
-    #
-    # Form i(U + 1/2S')
-    OrbE = np.diag(Fock.real)
-    NB2k = NB*2*Nkp
-    if(len(OrbE)!=NB2k):
-      print(f"Mismatch in the number of orbital energies: {NB2k} != {len(OrbE)}")
-      exit()
-    DE = DEk(1,NB2k,OrbE)
-    UMat = FockDk - np.einsum('ij,j->ij',OvlDk,OrbE,optimize=True)
-    UMat /= -DE
-    UMat += 0.5*OvlDk
-    # The diagonal of this matrix is 0
-    np.fill_diagonal(UMat,0)
-    UMat = UMat*1j
-    del FockDk, OvlDk, OrbE, DE
-    # Now form the perturbation matrices in MO(k) basis
+    if(pert_type == "DipE"):
+      # For the length gauge electric dipole we need the translation
+      # vector and to form the U matrix
+      #
+      # Read translation vector
+      if(f"{mol}_txts/tv.txt"):
+        with open(f"{mol}_txts/tv.txt","r") as reader:
+          text=[]
+          for line in reader:
+            text.append(line.split())
+        tv = np.zeros((3))
+        tv[0] = float(text[0][0])
+        tv[1] = float(text[0][1])
+        tv[2] = float(text[0][2])
+        # Convert to Bohr
+        bohr_radius = physical_constants["Bohr radius"][0]
+        tv = np.array(tv)*angstrom / bohr_radius
+      else:
+        print(f" Translation vector is not available")
+        exit()
+      #
+      # dF/dk = F'
+      FockDk = getFock(mol,O,V,NB,ipbc,"MO",True,MOCoef)
+      #
+      # dS/dk = S'
+      OvlDk = getOvl(mol,O,V,NB,ipbc,"MO",True,MOCoef)
+      #
+      # Form i(U + 1/2S')
+      OrbE = np.diag(Fock.real)
+      NB2k = NB*2*Nkp
+      if(len(OrbE)!=NB2k):
+        print(f"Mismatch in the number of orbital energies: {NB2k} != {len(OrbE)}")
+        exit()
+      DE = DEk(1,NB2k,OrbE)
+      UMat = FockDk - np.einsum('ij,j->ij',OvlDk,OrbE,optimize=True)
+      UMat /= -DE
+      UMat += 0.5*OvlDk
+      # The diagonal of this matrix is 0
+      np.fill_diagonal(UMat,0)
+      UMat = UMat*1j
+      del FockDk, OvlDk, OrbE, DE
+      # Now form the perturbation matrices in MO(k) basis
     X_ij = np.zeros((NP,Nkp,Nkp,O2,O2),dtype=complex)
     X_ia = np.zeros((NP,Nkp,Nkp,O2,V2),dtype=complex)
     X_ab = np.zeros((NP,Nkp,Nkp,V2,V2),dtype=complex)
     AOPert = AOPert.reshape((NP,nmtpbc,ntt))
     for n in range (NP):
       Pert_k_lt = fourier("Dir",ipbc,AOPert[n,:,:],False)
-      PertA = basis_tran("Dir",True,False,"Herm",NB,Nkp,MOCoef,Pert_k_lt)
+      if(pert_type == "DipE"):
+        # Electric dipole length gauge
+        PertA = basis_tran("Dir",True,False,"Herm",NB,Nkp,MOCoef,Pert_k_lt)
+      elif(pert_type == "DipEV"):
+        # Electric dipole velocity gauge
+        PertA = basis_tran("Dir",True,False,"AHer",NB,Nkp,MOCoef,Pert_k_lt)
       Pert = np.zeros((Nkp,NB*2,Nkp,NB*2),dtype=complex)
       for k in range(Nkp):
         # Fill out the alpha and beta blocks
@@ -802,33 +836,47 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
         Pert[k,O:2*O,k,2*O+V:] = PertA[k,:O,O:]
         # vb-ob
         Pert[k,2*O+V:,k,O:2*O] = PertA[k,O:,:O]
-      Pert = Pert.reshape((Nkp*NB*2,Nkp*NB*2))
-      # Add UMat contribution
-      # I'm not sure about the overall sign here.
-      Pert -= UMat*tv[n]
-      Pert = Pert.reshape((Nkp,NB*2,Nkp,NB*2))
+      if(pert_type == "DipE"):
+        # Electric dipole length gauge
+        # Add UMat contribution
+        Pert = Pert.reshape((Nkp*NB*2,Nkp*NB*2))
+        Pert -= UMat*tv[n]
+        Pert = Pert.reshape((Nkp,NB*2,Nkp,NB*2))
       Pert = np.transpose(Pert,axes=(0,2,1,3))
-      for k in range(Nkp):
-        dipprod = np.einsum('ij,ij->',Pert[k,k,:,:],np.conjugate(Pert[k,k,:,:]),optimize=True)
       for k in range(Nkp):
         X_ij[n,k,k,:,:] = Pert[k,k,:O2,:O2]
         X_ia[n,k,k,:,:] = Pert[k,k,:O2,O2:]
         X_ab[n,k,k,:,:] = Pert[k,k,O2:,O2:]
     del AOPert, Pert_k_lt, PertA, Pert
-    X_ij = np.transpose(X_ij,axes=(0,1,3,2,4))
+    if(pert_type == "DipE"):
+      X_ij = np.transpose(X_ij,axes=(0,1,3,2,4))
+    elif(pert_type == "DipEV"):
+      X_ij = np.transpose(X_ij,axes=(0,2,4,1,3))
     X_ij = X_ij.reshape((NP,O2k,O2k))
     X_ia = np.transpose(X_ia,axes=(0,1,3,2,4))
     X_ia = X_ia.reshape((NP,O2k,V2k))
-    X_ab = np.transpose(X_ab,axes=(0,1,3,2,4))
+    if(pert_type == "DipE"):
+      X_ab = np.transpose(X_ab,axes=(0,1,3,2,4))
+    elif(pert_type == "DipEV"):
+      X_ab = np.transpose(X_ab,axes=(0,2,4,1,3))
     X_ab = X_ab.reshape((NP,V2k,V2k))
-    X_ij = np.conjugate(X_ij)
     X_ia = np.conjugate(X_ia)
-    X_ab = np.conjugate(X_ab)
+    if(pert_type == "DipE"):
+      X_ij = np.conjugate(X_ij)
+      X_ab = np.conjugate(X_ab)
+    # elif(pert_type == "DipEV"):
+    #   X_ia = np.conjugate(X_ia)
   else:
     # Molecular case
     PertSQ  = np.zeros((3, NB, NB))
-    for n in range (NP):
-      PertSQ[n,:,:] = square_m(NB,True,"Sym",AOPert[n,:],PertSQ[n,:,:])
+    if(pert_type == "DipE"):
+      # Electric dipole length gauge
+      for n in range (NP):
+        PertSQ[n,:,:] = square_m(NB,True,"Sym",AOPert[n,:],PertSQ[n,:,:])
+    elif(pert_type == "DipEV"):
+      # Electric dipole length gauge
+      for n in range (NP):
+        PertSQ[n,:,:] = square_m(NB,True,"ASym",AOPert[n,:],PertSQ[n,:,:])
     temp = np.einsum('im,kml,jl->kij',MOCoef,PertSQ,MOCoef,optimize=True)
     X_ij = np.zeros((NP,O2,O2))
     X_ia = np.zeros((NP,O2,V2))
@@ -836,16 +884,20 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
     for n in range(NP):
       for i in range(O):
         for j in range(O):
-          X_ij[n,i,j] = temp[n,i,j]
-          X_ij[n,i+O,j+O] = temp[n,i,j]
+          X_ij[n,i,j] = temp[n,j,i]
+          X_ij[n,i+O,j+O] = temp[n,j,i]
+          # X_ij[n,i,j] = temp[n,i,j]
+          # X_ij[n,i+O,j+O] = temp[n,i,j]
       for i in range(O):
         for a in range(V):
           X_ia[n,i,a] = temp[n,i,a+O]
           X_ia[n,i+O,a+V] = temp[n,i,a+O]
       for a in range(V):
         for b in range(V):
-          X_ab[n,a,b] = temp[n,a+O,b+O]
-          X_ab[n,a+V,b+V] = temp[n,a+O,b+O]
+          X_ab[n,a,b] = temp[n,b+O,a+O]
+          X_ab[n,a+V,b+V] = temp[n,b+O,a+O]
+          # X_ab[n,a,b] = temp[n,a+O,b+O]
+          # X_ab[n,a+V,b+V] = temp[n,a+O,b+O]
     del temp, AOPert, PertSQ
   return NP, X_ij, X_ia, X_ab
 

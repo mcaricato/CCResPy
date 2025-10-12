@@ -1,11 +1,11 @@
-###########################################################################
+############################################################################
 #
 # This file contains most of the functions used by the main CCResPy program
 # v1.0.0
 #
 # This program is licensed under the terms of the GNU General Public
 # License v3.0 or later
-###########################################################################
+############################################################################
 #
 import numpy as np
 import os
@@ -631,11 +631,14 @@ def l2Eq(T,molecule,scratch,Nkp,t1,l1,l2,IABC,IJAB,IJKA,F_ae,F_mi,F_me,G_ae,
 # Form constant terms based on 1e perturbation X:
 # <S|e^{-T}Xe^{T}|0> and <D|e^{-T}Xe^{T}|0>.
 #########################################################################
-def pert_rhs(T, Nkp, O2, V2, t1, t2, X_ij, X_ia, X_ab):
+def pert_rhs(T, PertSymm, Nkp, O2, V2, t1, t2, X_ij, X_ia, X_ab):
   # X is supposed to be in MO basis and already divided in oo, ov, and vv blocks
   if T==1:
     # Singles
-    rhs1 = np.copy(X_ia) 
+    if(PertSymm == "Symm"):
+      rhs1 = np.copy(X_ia)
+    else:
+      rhs1 = -np.copy(X_ia)
     rhs1 += np.einsum('kc,ikac->ia',np.conjugate(X_ia),t2,optimize=True)/Nkp
     rhs1 -= np.einsum('kc,ic,ka->ia',np.conjugate(X_ia),t1,t1,optimize=True)
     rhs1 += np.einsum('ic,ca->ia',t1,X_ab,optimize=True)
@@ -967,7 +970,7 @@ def square_m(NDim,Lin,MType,Mat,MatSq):
     MatSq = MatSq - MatSq.T
   elif(MType == "Herm"):
     MatSq = MatSq + np.conjugate(MatSq).T
-  elif(MType == "AHerm"):
+  elif(MType == "AHer"):
     MatSq = MatSq - np.conjugate(MatSq).T
   else:
     print(f"Wrong matrix type in square_m: {MType}")
