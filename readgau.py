@@ -33,6 +33,7 @@ def main():
  
   baf = qcb.QCBinAr(file=FName)
   geometry = baf.c
+  atoms_list = baf.ian
   nb = baf.nbasis
   nae = (baf.ne+baf.multip-1)//2         # number of alpha electrons
   nbe = (baf.ne-baf.multip+1)//2         # number of beta electrons
@@ -95,6 +96,8 @@ def main():
   # Write general stuff on disk
   with open(f"{mol}_txts/geometry.txt","w") as writer:
     writer.write(str(geometry))
+  with open(f"{mol}_txts/atoms_list.txt","w") as writer:
+    writer.write(str(atoms_list))
   fock_r = baf.matlist["ALPHA FOCK MATRIX"].array#.reshape((nmtpbc,ntt))
   with open(f"{mol}_txts/fock.txt","w") as writer:
     writer.write(str(fock_r))
@@ -125,6 +128,18 @@ def main():
   if "DIP VEL INTEGRALS" in baf.matlist:
     dip_r = baf.matlist["DIP VEL INTEGRALS"].array
     with open(f"{mol}_txts/dipole_v.txt","w") as writer:
+      writer.write(str(dip_r))
+
+  # Magnetic dipole integrals
+  if "R X DEL INTEGRALS" in baf.matlist:
+    dip_r = baf.matlist["R X DEL INTEGRALS"].array
+    with open(f"{mol}_txts/magnetic.txt","w") as writer:
+      writer.write(str(dip_r))
+
+  # Quadrupole integrals, velocity gauge
+  if "R X DEL - DEL X R INTEGRALS" in baf.matlist:
+    dip_r = baf.matlist["R X DEL - DEL X R INTEGRALS"].array
+    with open(f"{mol}_txts/quadrupole_v.txt","w") as writer:
       writer.write(str(dip_r))
 
   
