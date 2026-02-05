@@ -86,10 +86,12 @@ if(ipbc):
 
 # Tensor choice
 #PertType = "DipE"
-#PertType = "DipEV"
+PertType = "DipEV"
 #PertType = "OR_V"
-PertType = "FullOR_V"
-if(ipbc and (PertType == "OR_V" or PertType == "OR_LGOI")):
+#PertType = "OR_L"
+#PertType = "FullOR_V"
+#PertType = "FullOR_L"
+if(ipbc and (PertType == "OR_V" or PertType == "OR_L")):
   with open(f"{molecule}.txt","a") as writer:
     writer.write(f"The full OR tensor should be computed for periodic systems\n")
   exit()
@@ -204,6 +206,7 @@ t1, t2 = AmpIt("T",molecule,scratch,Ok,Vk,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
 # t1, t2 = AmpIt("T",molecule,scratch,Ok,Vk,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
 #                IJKL,IABC,IJAB,IABJ,IJKA,tau,W_efam,W_iemn,W_mbej,
 #                W_mnij,F_ae,F_mi,F_me,D1,D2,D1,D2,t1,t2,t1,t2,t1,t2,ipbc)
+# exit()
 
 ##########################################################################  
 # Compute constant intermediates
@@ -211,7 +214,7 @@ t1, t2 = AmpIt("T",molecule,scratch,Ok,Vk,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
 start=time.time()
 tau_tilde = tau_tildeEq(1, Nkp, t1, t2)
 tau = tauEq(1, Nkp, t1, t2)
-F_ae,F_mi,F_me = T_interm(1,molecule,scratch,Ok,Vk,Nkp,Fock,t1,t2,tau_tilde,tau)
+F_ae,F_mi,F_me = T_interm(molecule,scratch,Ok,Vk,Nkp,Fock,t1,t2,tau_tilde,tau)
 # F_ae,F_mi,F_me,W_mnij,W_mbej = T_interm(1,Ok,Vk,Nkp,Fock,t1,t2,IJKL,IABC,
 #                                         IJAB,IABJ,IJKA,tau_tilde,tau)
 if(f"{scratch}/{molecule}-ABCD.npy"): 
@@ -238,6 +241,9 @@ with open(f"{molecule}.txt","a") as writer:
   writer.write("****************************************************\n")
 l1, l2 = AmpIt("L",molecule,scratch,Ok,Vk,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
                tau,F_ae,F_mi,F_me,D1,D2,D1,D2,t1,t2,l1,l2,t1,t2,ipbc)
+np.save(f"{scratch}/{molecule}-l1",l1)
+np.save(f"{scratch}/{molecule}-l2",l2)
+del l1, l2
 # l1, l2 = AmpIt("L",molecule,scratch,Ok,Vk,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
 #                IJKL,IABC,IJAB,IABJ,IJKA,tau,W_efam,W_iemn,W_mbej,
 #                W_mnij,F_ae,F_mi,F_me,D1,D2,D1,D2,t1,t2,l1,l2,t1,t2,ipbc)
@@ -255,8 +261,8 @@ with open(f"{molecule}.txt","a") as writer:
   writer.write("****************************************************\n")
   writer.write("*           COMPUTING CCSD LR FUNCTION             *\n")
   writer.write("****************************************************\n")
-PertSymm = "Symm"
-NP, NP1, NP2, NP3, X_ij, X_ia, X_ab = getPert(O,V,NB,ipbc,MOCoef,Fock,PertType,molecule)
+NP, NP1, NP2, NP3, NP4, X_ij, X_ia, X_ab = getPert(O,V,NB,ipbc,MOCoef,
+                                                   Fock,PertType,molecule)
 tot_mem, avlb_mem = mem_check()
 with open(f"{molecule}.txt","a") as writer:
   writer.write(f"Perturbation integrals read, Time: {time.time()-start:.2f}s, AvlMem: {avlb_mem:.2f}GB\n")
@@ -272,7 +278,13 @@ Wlist.append(0.091126705070476835) # 500nm
 #Wlist.append(0.15187784178412805) # 300nm
 tensor = np.zeros((len(Wlist), NP1, NP2),dtype=Fock.dtype)
 tensorDQ = []
-if(PertType == "FullOR_V"): tensorDQ = np.zeros((len(Wlist),NP1, NP3),dtype=Fock.dtype)
+alpha_mix = []
+if(PertType == "FullOR_V" or PertType == "FullOR_L"):
+  tensorDQ = np.zeros((len(Wlist),NP1, NP3),dtype=Fock.dtype)
+if(PertType == "OR_L" or PertType == "FullOR_L"):
+  alpha_mix = np.zeros((len(Wlist),NP1, NP1),dtype=Fock.dtype)
+with open(f"{molecule}.txt","a") as writer:
+  writer.write(f"Alpha_mix: {np.shape(alpha_mix)}; NP: {NP1},{NP2},{NP3},{NP}\n")
 for iw in range(len(Wlist)):
   # Loop over frequencies    
   W = Wlist[iw]
@@ -304,7 +316,9 @@ for iw in range(len(Wlist)):
     MaxX[ip] = max(MaxIJr,MaxIJi,MaxIAr,MaxIAi,MaxABr,MaxABi)
     if(MaxX[ip] > 1e-15):
       start=time.time()
-      if(PertType == "DipEV" or PertType == "OR_V" or PertType == "FullOR_V"):
+      PertSymm = "Symm"
+      if(PertType == "DipEV" or PertType == "OR_V" or PertType == "FullOR_V"
+         or ((PertType == "OR_L" or PertType == "FullOR_L") and ip >= NP1)):
         PertSymm = "ASymm"
       rhs1, rhs2 = pert_rhs(1, PertSymm, Nkp, O2k, V2k, t1, t2, X_ij[ip,:,:], X_ia[ip,:,:], X_ab[ip,:,:])
       tot_mem, avlb_mem = mem_check()
@@ -330,7 +344,7 @@ for iw in range(len(Wlist)):
         ttx1[:,:], ttx2[:,:,:,:] = AmpIt("Tx",molecule,scratch,Ok,Vk,Nkp,
                                          MaxIt,ThrE,ThrA,scfE,Fock,tau,
                                          F_ae,F_mi,F_me,rhs1,rhs2,D1,D2,
-                                         t1,t2,l1,l2,ttx1,ttx2,ipbc)
+                                         t1,t2,t1,t2,ttx1,ttx2,ipbc)
         # ttx1[:,:], ttx2[:,:,:,:] = AmpIt("Tx",molecule,scratch,Ok,Vk,Nkp,
         #                                  MaxIt,ThrE,ThrA,scfE,Fock,IJKL,
         #                                  IABC,IJAB,IABJ,IJKA,tau,W_efam,
@@ -368,22 +382,22 @@ for iw in range(len(Wlist)):
     if(MaxX[ip] > 1e-15):
       # Evaluate Xi amplitudes 
       start=time.time()
-      # tx1 = np.load(f"{scratch}/{molecule}-tx1.npy",mmap_mode='r')
-      # tx2 = np.load(f"{scratch}/{molecule}-tx2.npy",mmap_mode='r')
+      l1 = np.load(f"{scratch}/{molecule}-l1.npy",mmap_mode='r')
+      l2 = np.load(f"{scratch}/{molecule}-l2.npy",mmap_mode='r')
       ttx1 = tx1[ip,0,:,:]
       ttx2 = tx2[ip,0,:,:,:,:]
-      Xi1, Xi2 = Xi(1,molecule,scratch,Nkp,ttx1,ttx2,l1,l2,t1,
+      Xi1, Xi2 = Xi(1,molecule,scratch,Nkp,O2k,ttx1,ttx2,l1,l2,t1,
                     F_ae,F_mi,F_me,D2)
       # Xi1, Xi2 = Xi(1,Nkp,ttx1,ttx2,l1,l2,t1,IABC,IJAB,IJKA,F_ae,F_mi,F_me,
       #               W_mbej,D2)
-      del ttx1, ttx2
+      del ttx1, ttx2, l1, l2
       # Xi1, Xi2 = Xi(1,Nkp,tx1[ip,0,:,:],tx2[ip,0,:,:,:,:],l1,l2,t1,IABC,IJAB,
       #               IJKA,F_ae,F_mi,F_me,W_mbej,D2)
       # del tx1, tx2
       tot_mem, avlb_mem = mem_check()
       with open(f"{molecule}.txt","a") as writer:
         writer.write(f"Xi terms evaluated, Time: {time.time()-start:.2f}s, AvlMem: {avlb_mem:.2f}GB\n")
-      for ipa in range(NP2+NP3):
+      for ipa in range(NP2+NP3+NP4):
         # Contract Xi(ip) with Tx(ipa)
         if(PertType == "DipE" or PertType == "DipEV"):
           ttx1 = tx1[ipa,1,:,:]
@@ -434,6 +448,51 @@ for iw in range(len(Wlist)):
           #     writer.write(f"ip,ipa,ip1,ipa1,ipa2: {ip},{ipa},{ip1},{ipa1},{ipa2}\n")
           #     writer.write(f"Xi1 = {xx1:+.6f}, Xi2 = {xx2:+.6f}, Tx1 = {tt1:+.6f}, Tx2 = {tt2:+.6f}, Tensor: {tensor[iw,ip1,ipa1]/4}\n")
           # del tx1, tx2
+        elif(PertType == "OR_L"):
+          if(ipa < NP2 and ip < NP1+NP2):
+            # Beta contribution
+            if(ip < NP1):
+              # mu(+)m(-)
+              ip1 = ip
+              ipa1 = ipa
+              ipa2 = ipa + NP1
+              fact = 1
+            elif(ip < NP1+NP2):
+              # mu(-)m(+)
+              ip1 = ipa
+              ipa1 = ip - NP1 
+              ipa2 = ipa
+              fact = -1
+            ttx1 = tx1[ipa2,1,:,:]
+            ttx2 = tx2[ipa2,1,:,:,:,:]
+            tensor[iw,ip1,ipa1] -= fact*np.einsum('ia,ia->',Xi1,ttx1,
+                                                  optimize=True)/Nkp 
+            tensor[iw,ip1,ipa1] -= 0.25*fact*np.einsum('ijab,ijab->',Xi2,
+                                                       ttx2,optimize=True)/NkpC
+            del ttx1, ttx2
+          elif((ipa >= NP2 and ip < NP1) or (ip >= NP1+NP2 and ipa < NP2)):
+            # alpha(l,V) contribution
+            if(ip < NP1):
+              # mu_L(+)mu_V(-)
+              ip1 = ip
+              ipa1 = ipa - NP2
+              ipa2 = ipa + NP1 
+              fact = 1
+            elif(ip >= NP1+NP2):
+              # mu_L(-)mu_V(+)
+              ip1 = ipa 
+              ipa1 = ip - NP1 - NP2 
+              ipa2 = ipa 
+              fact = -1
+            ttx1 = tx1[ipa2,1,:,:]
+            ttx2 = tx2[ipa2,1,:,:,:,:]
+            alpha_mix[iw,ip1,ipa1] -= fact*np.einsum('ia,ia->',Xi1,
+                                                     ttx1,optimize=True)/Nkp 
+            alpha_mix[iw,ip1,ipa1] -= 0.25*fact*np.einsum('ijab,ijab->',Xi2,
+                                                          ttx2,optimize=True)/NkpC
+            # with open(f"{molecule}.txt","a") as writer:
+            #   writer.write(f"Alpha_mix 1: {iw},{ip1},{ipa1},{ip},{ipa} \n {alpha_mix[iw,ip1,ipa1]}\n")
+            del ttx1, ttx2
         elif(PertType == "FullOR_V"):
           if(ipa < NP2 and ip < NP1+NP2):
             # Beta contribution
@@ -522,6 +581,70 @@ for iw in range(len(Wlist)):
             # tot_mem, avlb_mem = mem_check()
             # with open(f"{molecule}.txt","a") as writer:
             #   writer.write(f"TensorDQ3, AvlMem: {avlb_mem:.2f}GB\n")
+        elif(PertType == "FullOR_L"):
+          if(ipa < NP2 and ip < NP1+NP2):
+            # Beta contribution
+            if(ip < NP1):
+              # mu(+)m(-)
+              ip1 = ip
+              ipa1 = ipa
+              ipa2 = ipa + NP1
+              fact = 1
+            elif(ip < NP1+NP2):
+              # mu(-)m(+)
+              ip1 = ipa
+              ipa1 = ip - NP1 
+              ipa2 = ipa
+              fact = -1
+            ttx1 = tx1[ipa2,1,:,:]
+            ttx2 = tx2[ipa2,1,:,:,:,:]
+            tensor[iw,ip1,ipa1] -= fact*np.einsum('ia,ia->',Xi1,ttx1,optimize=True)/Nkp 
+            tensor[iw,ip1,ipa1] -= 0.25*fact*np.einsum('ijab,ijab->',Xi2,
+                                                       ttx2,optimize=True)/NkpC
+            del ttx1, ttx2
+          elif((ipa >= NP2 and ip < NP1 and ipa<NP2+NP3) or
+               (ip >= NP1+NP2 and ipa < NP2 and ip<NP1+NP2+NP3)):
+            # A contribution
+            if(ip < NP1):
+              # mu(+)Theta(-)
+              ip1 = ip
+              ipa1 = ipa - NP2
+              ipa2 = ipa + NP1 
+              fact = 1
+            elif(ip >= NP1+NP2):
+              # mu(-)Theta(+)
+              ip1 = ipa 
+              ipa1 = ip - NP1 - NP2 
+              ipa2 = ipa 
+              fact = -1
+            ttx1 = tx1[ipa2,1,:,:]
+            ttx2 = tx2[ipa2,1,:,:,:,:]
+            tensorDQ[iw,ip1,ipa1] -= fact*np.einsum('ia,ia->',Xi1,
+                                                    ttx1,optimize=True)/Nkp 
+            tensorDQ[iw,ip1,ipa1] -= 0.25*fact*np.einsum('ijab,ijab->',Xi2,
+                                                         ttx2,optimize=True)/NkpC
+            del ttx1, ttx2
+          elif((ipa >= NP2+NP3 and ip < NP1) or (ip >= NP1+NP2+NP3 and ipa < NP2)):
+            # alpha(L,V) contribution
+            if(ip < NP1):
+              # mu_L(+)mu_V(-)
+              ip1 = ip
+              ipa1 = ipa - NP2 - NP3
+              ipa2 = ipa + NP1 
+              fact = 1
+            elif(ip >= NP1+NP2+NP3):
+              # mu(-)Theta(+)
+              ip1 = ipa 
+              ipa1 = ip - NP1 - NP2 - NP3 
+              ipa2 = ipa 
+              fact = -1
+            ttx1 = tx1[ipa2,1,:,:]
+            ttx2 = tx2[ipa2,1,:,:,:,:]
+            alpha_mix[iw,ip1,ipa1] -= fact*np.einsum('ia,ia->',Xi1,
+                                                     ttx1,optimize=True)/Nkp 
+            alpha_mix[iw,ip1,ipa1] -= 0.25*fact*np.einsum('ijab,ijab->',Xi2,
+                                                          ttx2,optimize=True)/NkpC
+            del ttx1, ttx2
       del Xi1, Xi2
       # with open(f"{molecule}.txt","a") as writer:
       #   writer.write(f"Tensor[3,3]: {tensor[iw,2,2]/4}\n")
@@ -531,8 +654,10 @@ for iw in range(len(Wlist)):
         start=time.time()
         ttx1 = tx1[ip,ipmw,:,:]
         ttx2 = tx2[ip,ipmw,:,:,:,:]
+        l1 = np.load(f"{scratch}/{molecule}-l1.npy",mmap_mode='r')
+        l2 = np.load(f"{scratch}/{molecule}-l2.npy",mmap_mode='r')
         rho1 = TrDen1(1,O2k,NOrb2k,Nkp,ttx1,ttx2,l1,l2,t1,t2)
-        del ttx1, ttx2
+        del ttx1, ttx2, l1, l2
         # tx1 = np.load(f"{scratch}/{molecule}-tx1.npy",mmap_mode='r')
         # tx2 = np.load(f"{scratch}/{molecule}-tx2.npy",mmap_mode='r')
         # rho1 = TrDen1(1,O2k,NOrb2k,Nkp,tx1[ip,ipmw,:,:],
@@ -543,7 +668,7 @@ for iw in range(len(Wlist)):
           writer.write(f"Rho evaluated, Time: {time.time()-start:.2f}s, AvlMem: {avlb_mem:.2f}GB\n")
         # with open(f"{molecule}.txt","a") as writer:
         #   writer.write(f"Tensor[3,3]: {tensor[iw,2,2]/4}\n")
-        for ipa in range(NP2+NP3):
+        for ipa in range(NP2+NP3+NP4):
           # Contract 1PDM(ip) with Pert(ipa)
           if(PertType == "DipE"):
             tensor[iw,ip,ipa] += np.einsum('ia,ia->',np.conjugate(X_ia[ipa,:,:]),
@@ -586,6 +711,59 @@ for iw in range(len(Wlist)):
             tensor[iw,ip1,ipa1] += f_static*np.einsum('ba,ab->',X_ab[ipa2,:,:],
                                                       rho1[O2k:,O2k:],
                                                       optimize=True)/Nkp   
+          elif(PertType == "OR_L"):
+            if(ipa < NP2 and ip < NP1+NP2):
+              # Beta contribution
+              if(ip < NP1):
+                # mu(+)m(-)
+                ip1 = ip
+                ipa1 = ipa
+                ipa2 = ipa + NP1
+                fact = 1
+                if(ipmw > 0): fact = -1
+              elif(ip < NP1+NP2):
+                # mu(-)m(+)
+                ip1 = ipa
+                ipa1 = ip - NP1 
+                ipa2 = ipa
+                fact = -1
+                if(ipmw > 0): fact = 1
+              tensor[iw,ip1,ipa1] += fact*np.einsum('ia,ia->',np.conjugate(X_ia[ipa2,:,:]),
+                                                    rho1[:O2k,O2k:],
+                                                    optimize=True)/Nkp   
+              tensor[iw,ip1,ipa1] += fact*np.einsum('ji,ij->',X_ij[ipa2,:,:],
+                                                    rho1[:O2k,:O2k],
+                                                    optimize=True)/Nkp 
+              tensor[iw,ip1,ipa1] += fact*np.einsum('ba,ab->',X_ab[ipa2,:,:],
+                                                    rho1[O2k:,O2k:],
+                                                    optimize=True)/Nkp   
+            elif((ipa >= NP2 and ip < NP1) or (ip >= NP1+NP2 and ipa < NP2)):
+              # alpha(L,V) contribution
+              if(ip < NP1):
+                # mu_L(+)mu_V(-)
+                ip1 = ip
+                ipa1 = ipa - NP2
+                ipa2 = ipa + NP1
+                fact = 1
+                if(ipmw > 0): fact = -1
+              elif(ip >= NP1+NP2):
+                # mu_L(-)mu_V(+)
+                ip1 = ipa 
+                ipa1 = ip - NP1 - NP2 
+                ipa2 = ipa 
+                fact = -1
+                if(ipmw > 0): fact = 1
+              alpha_mix[iw,ip1,ipa1] += fact*np.einsum('ia,ia->',np.conjugate(X_ia[ipa2,:,:]),
+                                                       rho1[:O2k,O2k:],
+                                                       optimize=True)/Nkp   
+              alpha_mix[iw,ip1,ipa1] += fact*np.einsum('ji,ij->',X_ij[ipa2,:,:],
+                                                       rho1[:O2k,:O2k],
+                                                       optimize=True)/Nkp 
+              alpha_mix[iw,ip1,ipa1] += fact*np.einsum('ba,ab->',X_ab[ipa2,:,:],
+                                                       rho1[O2k:,O2k:],
+                                                       optimize=True)/Nkp   
+              # with open(f"{molecule}.txt","a") as writer:
+              #   writer.write(f"Alpha_mix 2: {iw},{ip1},{ipa1},{ip},{ipa} \n {alpha_mix[iw,ip1,ipa1]}\n")
           elif(PertType == "FullOR_V"):
             if(ipa < NP2 and ip < NP1+NP2):
               # Beta contribution
@@ -633,6 +811,83 @@ for iw in range(len(Wlist)):
               tensorDQ[iw,ip1,ipa1] += f_static*np.einsum('ba,ab->',X_ab[ipa2,:,:],
                                                           rho1[O2k:,O2k:],
                                                           optimize=True)/Nkp   
+          elif(PertType == "FullOR_L"):
+            if(ipa < NP2 and ip < NP1+NP2):
+              # Beta contribution
+              if(ip < NP1):
+                # mu(+)m(-)
+                ip1 = ip
+                ipa1 = ipa
+                ipa2 = ipa + NP1
+                fact = 1
+                if(ipmw > 0): fact = -1
+              elif(ip < NP1+NP2):
+                # mu(-)m(+)
+                ip1 = ipa
+                ipa1 = ip - NP1 
+                ipa2 = ipa
+                fact = -1
+                if(ipmw > 0): fact = 1
+              tensor[iw,ip1,ipa1] += fact*np.einsum('ia,ia->',np.conjugate(X_ia[ipa2,:,:]),
+                                                    rho1[:O2k,O2k:],
+                                                    optimize=True)/Nkp   
+              tensor[iw,ip1,ipa1] += fact*np.einsum('ji,ij->',X_ij[ipa2,:,:],
+                                                    rho1[:O2k,:O2k],
+                                                    optimize=True)/Nkp 
+              tensor[iw,ip1,ipa1] += fact*np.einsum('ba,ab->',X_ab[ipa2,:,:],
+                                                    rho1[O2k:,O2k:],
+                                                    optimize=True)/Nkp   
+            elif((ipa >= NP2 and ip < NP1 and ipa<NP2+NP3)
+                 or (ip >= NP1+NP2 and ipa < NP2 and ip < NP1+NP2+NP3)):
+              # A contribution
+              if(ip < NP1):
+                # mu(+)Theta(-)
+                ip1 = ip
+                ipa1 = ipa - NP2
+                ipa2 = ipa + NP1 
+                fact = 1
+                if(ipmw > 0): fact = -1
+              elif(ip >= NP1+NP2):
+                # mu(-)Theta(+)
+                ip1 = ipa 
+                ipa1 = ip - NP1 - NP2 
+                ipa2 = ipa 
+                fact = -1
+                if(ipmw > 0): fact = 1
+              tensorDQ[iw,ip1,ipa1] += fact*np.einsum('ia,ia->',np.conjugate(X_ia[ipa2,:,:]),
+                                                      rho1[:O2k,O2k:],
+                                                      optimize=True)/Nkp   
+              tensorDQ[iw,ip1,ipa1] += fact*np.einsum('ji,ij->',X_ij[ipa2,:,:],
+                                                      rho1[:O2k,:O2k],
+                                                      optimize=True)/Nkp 
+              tensorDQ[iw,ip1,ipa1] += fact*np.einsum('ba,ab->',X_ab[ipa2,:,:],
+                                                      rho1[O2k:,O2k:],
+                                                      optimize=True)/Nkp   
+            elif((ipa >= NP2+NP3 and ip < NP1) or (ip >= NP1+NP2+NP3 and ipa < NP2)):
+              # alpha(L,V) contribution
+              if(ip < NP1):
+                # mu_L(+)mu_V(-)
+                ip1 = ip
+                ipa1 = ipa - NP2 - NP3
+                ipa2 = ipa + NP1 
+                fact = 1
+                if(ipmw > 0): fact = -1
+              elif(ip >= NP1+NP2+NP3):
+                # mu_L(-)mu_V(+)
+                ip1 = ipa 
+                ipa1 = ip - NP1 - NP2 - NP3 
+                ipa2 = ipa 
+                fact = -1
+                if(ipmw > 0): fact = 1
+              alpha_mix[iw,ip1,ipa1] += fact*np.einsum('ia,ia->',np.conjugate(X_ia[ipa2,:,:]),
+                                                       rho1[:O2k,O2k:],
+                                                       optimize=True)/Nkp   
+              alpha_mix[iw,ip1,ipa1] += fact*np.einsum('ji,ij->',X_ij[ipa2,:,:],
+                                                       rho1[:O2k,:O2k],
+                                                       optimize=True)/Nkp 
+              alpha_mix[iw,ip1,ipa1] += fact*np.einsum('ba,ab->',X_ab[ipa2,:,:],
+                                                       rho1[O2k:,O2k:],
+                                                       optimize=True)/Nkp   
           # with open(f"{molecule}.txt","a") as writer:
           #   writer.write(f"ipmw: {ipmw}, ipa: {ipa}, Tensor[3,3]: {tensor[iw,2,2]/4}\n")
           # else:
@@ -658,7 +913,7 @@ for iw in range(len(Wlist)):
   # Print the tensor for frequency W
   # with open(f"{molecule}.txt","a") as writer:
   #   writer.write(f"Tensor[3,3]: {tensor[iw,2,2]/4}\n")
-  print_tensor(molecule,PertType,iw,W,tensor,tensorDQ)
+  print_tensor(molecule,PertType,iw,W,tensor,tensorDQ,alpha_mix)
 with open(f"{molecule}.txt","a") as writer:
   writer.write(f"Total Calculation Time: {time.time()-start0:.2f}s\n")
 # Delete scratch files

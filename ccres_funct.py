@@ -132,8 +132,14 @@ def AmpIt(AmpType,molecule,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
   DoDIIS = "F"
   B_mat = np.zeros((MaxD,MaxD),dtype=Fock.dtype)
   e_DIIS = []
-  st1 = []
-  st2 = []
+  # st1 = []
+  # st2 = []
+  st1 = np.lib.format.open_memmap(f"{scratch}/{molecule}-DIISa1.npy",
+                                  mode='w+',shape=(MaxD,*t1.shape),
+                                  dtype=Fock.dtype) 
+  st2 = np.lib.format.open_memmap(f"{scratch}/{molecule}-DIISa2.npy",
+                                  mode='w+',shape=(MaxD,*t2.shape),
+                                  dtype=Fock.dtype) 
   # Start loop
   start0=time.time()
   with open(f"{molecule}.txt","a") as writer:
@@ -146,18 +152,20 @@ def AmpIt(AmpType,molecule,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
       # Ground state T amplitudes
       if(N==1):
         # Initialize DIIS amplitudes with guess
-        st1 = []
-        st2 = []
-        st1.append(t1.reshape(np.size(t1)))
-        st2.append(t2.reshape(np.size(t2)))
-        np.save(f"{scratch}/{molecule}-DIISa1",st1)
-        np.save(f"{scratch}/{molecule}-DIISa2",st2)
+        # st1 = []
+        # st2 = []
+        # st1.append(t1.reshape(np.size(t1)))
+        # st2.append(t2.reshape(np.size(t2)))
+        # np.save(f"{scratch}/{molecule}-DIISa1",st1)
+        # np.save(f"{scratch}/{molecule}-DIISa2",st2)
+        st1[0,:,:] = np.copy(t1)
+        st2[0,:,:,:,:] = np.copy(t2)
         del st1, st2
       # Calculate intermediates
       tau_tilde = tau_tildeEq(1, Nkp, t1, t2)
       tau = tauEq(1, Nkp, t1, t2)
-      F_ae,F_mi,F_me = T_interm(1,molecule,scratch,O,V,Nkp,
-                                Fock,t1,t2,tau_tilde,tau)
+      F_ae,F_mi,F_me = T_interm(molecule,scratch,O,V,Nkp,Fock,t1,t2,
+                                tau_tilde,tau)
       # F_ae,F_mi,F_me,W_mnij,W_mbej = T_interm(1,O,V,Nkp,Fock,t1,t2,
       #                                         IJKL,IABC,IJAB,IABJ,
       #                                         IJKA,tau_tilde,tau)
@@ -184,12 +192,14 @@ def AmpIt(AmpType,molecule,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
       # Ground state Lambda (or Z) amplitudes
       if(N==1):
         # Initialize DIIS amplitudes with guess
-        st1 = []
-        st2 = []
-        st1.append(l1.reshape(np.size(l1)))
-        st2.append(l2.reshape(np.size(l2)))
-        np.save(f"{scratch}/{molecule}-DIISa1",st1)
-        np.save(f"{scratch}/{molecule}-DIISa2",st2)
+        # st1 = []
+        # st2 = []
+        # st1.append(l1.reshape(np.size(l1)))
+        # st2.append(l2.reshape(np.size(l2)))
+        # np.save(f"{scratch}/{molecule}-DIISa1",st1)
+        # np.save(f"{scratch}/{molecule}-DIISa2",st2)
+        st1[0,:,:] = np.copy(l1)
+        st2[0,:,:,:,:] = np.copy(l2)
         del st1, st2
       # Calculate intermediates
       G_ae, G_mi = L_Interm(1,Nkp,t2,l2)
@@ -215,12 +225,14 @@ def AmpIt(AmpType,molecule,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
       # Perturbed T amplitudes
       if(N==1):
         # Initialize DIIS amplitudes with guess
-        st1 = []
-        st2 = []
-        st1.append(tx1.reshape(np.size(tx1)))
-        st2.append(tx2.reshape(np.size(tx2)))
-        np.save(f"{scratch}/{molecule}-DIISa1",st1)
-        np.save(f"{scratch}/{molecule}-DIISa2",st2)
+        # st1 = []
+        # st2 = []
+        # st1.append(tx1.reshape(np.size(tx1)))
+        # st2.append(tx2.reshape(np.size(tx2)))
+        # np.save(f"{scratch}/{molecule}-DIISa1",st1)
+        # np.save(f"{scratch}/{molecule}-DIISa2",st2)
+        st1[0,:,:] = np.copy(tx1)
+        st2[0,:,:,:,:] = np.copy(tx2)
         del st1, st2
       # Calculate intermediates
       IJAB = np.load(f"{scratch}/{molecule}-IJAB.npy",mmap_mode='r')
@@ -311,45 +323,76 @@ def DIIS(scratch,molecule,O,V,Iter,MaxD,Thr,RepD,amp1,amp2):
   # e_DIIS: save errors between iterations
   # B: DIIS matrix
   amp_type = amp1.dtype
-  sizeA1 = np.size(amp1)
-  sizeA2 = np.size(amp2)
+  # sizeA1 = np.size(amp1)
+  # sizeA2 = np.size(amp2)
   if(amp_type != amp2.dtype):
     print(f"Amplitude type mismatch: a1={amp_type} vs a2={amp2.dtype}")
     exit()
   ThrD = Thr/100
-  st1 = list(np.load(f"{scratch}/{molecule}-DIISa1.npy"))
-  st2 = list(np.load(f"{scratch}/{molecule}-DIISa2.npy"))
-  st1.append(amp1.reshape(np.size(amp1)))
-  st2.append(amp2.reshape(np.size(amp2)))
-  if len(st1)!= len(st2):
-    print(f"String length mismatch in DIIS: {len(st1)}, {len(st2)}\n")
-    exit()
-  if len(st1) > MaxD:
-    # Remove the oldest information 
-    del st1[0]
-    del st2[0]
-  len1 = len(st1)
-  np.save(f"{scratch}/{molecule}-DIISa1",st1)
-  np.save(f"{scratch}/{molecule}-DIISa2",st2)
+  st1 = np.load(f"{scratch}/{molecule}-DIISa1.npy",mmap_mode='r+')
+  st2 = np.load(f"{scratch}/{molecule}-DIISa2.npy",mmap_mode='r+')
+  if(Iter < MaxD):
+    st1[Iter,:,:] = np.copy(amp1)
+    st2[Iter,:,:,:,:] = np.copy(amp2)
+    # print(f"Iter:{Iter}")
+  else:
+    # Shift amplitudes down by 1
+    # (The explicit loop is as fast as np.roll but it uses less memory)
+    for n in range(MaxD-1):
+      st1[n,:,:] = np.copy(st1[n+1,:,:])
+      st2[n,:,:,:,:] = np.copy(st2[n+1,:,:,:,:])
+    st1[MaxD-1,:,:] = np.copy(amp1)
+    st2[MaxD-1,:,:,:,:] = np.copy(amp2)
+  # for n in range(MaxD):
+  #   pamp1 = np.einsum('kl,kl->',np.conjugate(amp1),amp1,optimize=True)
+  #   prd1 = np.einsum('kl,kl->',np.conjugate(st1[n,:,:]),st1[n,:,:],optimize=True)
+  #   prd2 = np.einsum('klij,klij->',np.conjugate(st2[n,:,:,:,:]),st2[n,:,:,:,:],optimize=True)
+  #   print(f"n:{n}, amp1: {pamp1.real}, st1: {prd1.real}, st2: {prd2.real:.2f} \n")
+  # st1 = list(np.load(f"{scratch}/{molecule}-DIISa1.npy"))
+  # st2 = list(np.load(f"{scratch}/{molecule}-DIISa2.npy"))
+  # st1.append(amp1.reshape(np.size(amp1)))
+  # st2.append(amp2.reshape(np.size(amp2)))
+  # if len(st1)!= len(st2):
+  #   print(f"String length mismatch in DIIS: {len(st1)}, {len(st2)}\n")
+  #   exit()
+  # if len(st1) > MaxD:
+  #   # Remove the oldest information 
+  #   del st1[0]
+  #   del st2[0]
+  # len1 = len(st1)
+  # np.save(f"{scratch}/{molecule}-DIISa1",st1)
+  # np.save(f"{scratch}/{molecule}-DIISa2",st2)
   del st1, st2
   DoDIIS = "F"
-  if len1==MaxD and (Iter%RepD==0):
-    del amp1, amp2
+  if Iter%RepD==0:
+#  if len1==MaxD and (Iter%RepD==0):
+    # del amp1, amp2
     B = np.zeros((MaxD,MaxD),dtype=amp_type)
-    ev1 = np.zeros((MaxD-1,sizeA1),dtype=amp_type)
-    st1 = list(np.load(f"{scratch}/{molecule}-DIISa1.npy",mmap_mode='r'))
+    # ev1 = np.zeros((MaxD-1,sizeA1),dtype=amp_type)
+    ev1 = np.lib.format.open_memmap(f"{scratch}/{molecule}-ev1.npy",
+                                    mode='w+',shape=(MaxD-1,*amp1.shape),
+                                    dtype=amp_type) 
+    st1 = np.load(f"{scratch}/{molecule}-DIISa1.npy",mmap_mode='r')
+    # st1 = list(np.load(f"{scratch}/{molecule}-DIISa1.npy",mmap_mode='r'))
     for l in range(MaxD-1):
-      ev1[l,:] = np.array(st1[l+1]) - np.array(st1[l])
+      # ev1[l,:] = np.array(st1[l+1]) - np.array(st1[l])
+      ev1[l,:,:] = st1[l+1,:,:] - st1[l,:,:]
     del st1
-    B[:MaxD-1,:MaxD-1] += np.einsum('ik,jk->ij',np.conjugate(ev1),ev1,optimize=True)
+    B[:MaxD-1,:MaxD-1] += np.einsum('ikl,jkl->ij',np.conjugate(ev1),ev1,optimize=True)
     del ev1
-    ev2 = np.zeros((MaxD-1,sizeA2),dtype=amp_type)
-    st2 = list(np.load(f"{scratch}/{molecule}-DIISa2.npy",mmap_mode='r'))
+    # ev2 = np.zeros((MaxD-1,sizeA2),dtype=amp_type)
+    ev2 = np.lib.format.open_memmap(f"{scratch}/{molecule}-ev2.npy",
+                                    mode='w+',shape=(MaxD-1,*amp2.shape),
+                                    dtype=amp_type) 
+    st2 = np.load(f"{scratch}/{molecule}-DIISa2.npy",mmap_mode='r')
+    # st2 = list(np.load(f"{scratch}/{molecule}-DIISa2.npy",mmap_mode='r'))
     for l in range(MaxD-1):
-      ev2[l,:] = np.array(st2[l+1]) - np.array(st2[l])
+      ev2[l,:,:,:,:] = st2[l+1,:,:,:,:] - st2[l,:,:,:,:]
+      # ev2[l,:] = np.array(st2[l+1]) - np.array(st2[l])
     del st2
-    B[:MaxD-1,:MaxD-1] += np.einsum('ik,jk->ij',np.conjugate(ev2),ev2,optimize=True)
+    B[:MaxD-1,:MaxD-1] += np.einsum('iklmn,jklmn->ij',np.conjugate(ev2),ev2,optimize=True)
     del ev2
+    os.system(f"rm {scratch}/{molecule}-ev?.npy")
     B[MaxD-1,:] = 1
     B[:,MaxD-1] = 1
     B[MaxD-1,MaxD-1] = 0
@@ -358,19 +401,26 @@ def DIIS(scratch,molecule,O,V,Iter,MaxD,Thr,RepD,amp1,amp2):
     ETest = np.max(abs(B[:MaxD-1,:MaxD-1]))
     csol = np.linalg.solve(B,rhs)
     csum = np.sum(csol[:MaxD-1])
+    # print(f"B:{B}\n csol: {csol}\n csum:{csum}\n")
     if(abs(csum-1)>ThrD):
       print(f"Issue with coefficients in DIIS: sum_C = {csum}\n")
       exit()
-    amp1 = np.zeros((sizeA1),dtype=amp_type)
-    amp2 = np.zeros((sizeA2),dtype=amp_type)
-    st1 = list(np.load(f"{scratch}/{molecule}-DIISa1.npy",mmap_mode='r'))
-    st2 = list(np.load(f"{scratch}/{molecule}-DIISa2.npy",mmap_mode='r'))
+    # amp1 = np.zeros((sizeA1),dtype=amp_type)
+    # amp2 = np.zeros((sizeA2),dtype=amp_type)
+    # st1 = list(np.load(f"{scratch}/{molecule}-DIISa1.npy",mmap_mode='r'))
+    # st2 = list(np.load(f"{scratch}/{molecule}-DIISa2.npy",mmap_mode='r'))
+    st1 = np.load(f"{scratch}/{molecule}-DIISa1.npy",mmap_mode='r')
+    st2 = np.load(f"{scratch}/{molecule}-DIISa2.npy",mmap_mode='r')
+    amp1 = 0
+    amp2 = 0
     for p in range(MaxD-1):
-      amp1 += np.array(st1[p+1]) * csol[p]
-      amp2 += np.array(st2[p+1]) * csol[p]
+      amp1 += st1[p+1,:,:] * csol[p]
+      amp2 += st2[p+1,:,:,:,:] * csol[p]
+      # amp1 += np.array(st1[p+1]) * csol[p]
+      # amp2 += np.array(st2[p+1]) * csol[p]
     del st1, st2
-    amp1 = np.reshape(amp1,((2*O),(2*V)))
-    amp2 = np.reshape(amp2,((2*O),(2*O),(2*V),(2*V)))
+    # amp1 = np.reshape(amp1,((2*O),(2*V)))
+    # amp2 = np.reshape(amp2,((2*O),(2*O),(2*V),(2*V)))
     DoDIIS = "T"
   # else:
   #   del st1, st2
@@ -400,8 +450,7 @@ def tauEq(T, Nkp, t1, t2):
 # F and W intermediates for CCSD T equations
 ##########################################################################
 # def T_interm(T,O,V,Nkp,Fock,t1,t2,IJKL,IABC,IJAB,IABJ,IJKA,tau_tilde,tau):
-def T_interm(T,molecule,scratch,O,V,Nkp,Fock,t1,t2,
-             tau_tilde,tau):
+def T_interm(molecule,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau):
   # O,V are assumed to be multiplied by Nkp in a PBC calculation
   O2=2*O
   V2=2*V
@@ -413,35 +462,44 @@ def T_interm(T,molecule,scratch,O,V,Nkp,Fock,t1,t2,
   IJKA = np.load(f"{scratch}/{molecule}-IJKA.npy",mmap_mode='r')
   W_mnij = np.load(f"{scratch}/{molecule}-Wmnij.npy",mmap_mode='r+')
   W_mbej = np.load(f"{scratch}/{molecule}-Wmbej.npy",mmap_mode='r+')
-  if T==1:
-    # F_ae
-    st_time = time.time()
-    F_ae = np.zeros((V2, V2),dtype=Fock.dtype)
-    F_ae += (1 - np.eye(V2)) * Fock[O2:, O2:] 
-    F_ae -= 0.5 * np.einsum('me,ma->ae', Fock[:O2, O2:], t1, optimize=True)
-    F_ae += np.einsum('mf,mafe->ae', t1, IABC, optimize=True)/Nkp
-    F_ae -= 0.5 * np.einsum('mnaf,mnef->ae',tau_tilde,IJAB,optimize=True)/NkpS
-    # F_mi
-    F_mi = np.zeros((O2, O2),dtype=Fock.dtype)
-    F_mi += (1 - np.eye(O2)) * Fock[:O2, :O2]
-    F_mi += 0.5 * np.einsum('ie,me->mi', t1, Fock[:O2, O2:], optimize=True)
-    F_mi -= np.einsum('ne,nmie->mi', t1, IJKA, optimize=True)/Nkp
-    F_mi += 0.5 * np.einsum('inef,mnef->mi', tau_tilde, IJAB, optimize=True)/NkpS
-    # F_me
-    F_me = np.zeros((O2, V2),dtype=Fock.dtype)
-    F_me = np.copy(Fock[:O2, O2:])
-    F_me += np.einsum('nf,mnef->me', t1, IJAB, optimize=True)/Nkp
-    # W_mnij
-    W_mnij[:,:,:,:] = np.copy(IJKL)
-    W_mnij += np.einsum('je,mnie->mnij', t1, IJKA, optimize=True)
-    W_mnij -= np.einsum('ie,mnje->mnij', t1, IJKA, optimize=True)
+  # if T==1:
+  # F_ae
+  st_time = time.time()
+  F_ae = np.zeros((V2, V2),dtype=Fock.dtype)
+  F_ae += (1 - np.eye(V2)) * Fock[O2:, O2:] 
+  F_ae -= 0.5 * np.einsum('me,ma->ae', Fock[:O2, O2:], t1, optimize=True)
+  F_ae += np.einsum('mf,mafe->ae', t1, IABC, optimize=True)/Nkp
+  F_ae -= 0.5 * np.einsum('mnaf,mnef->ae',tau_tilde,IJAB,optimize=True)/NkpS
+  # F_mi
+  F_mi = np.zeros((O2, O2),dtype=Fock.dtype)
+  F_mi += (1 - np.eye(O2)) * Fock[:O2, :O2]
+  F_mi += 0.5 * np.einsum('ie,me->mi', t1, Fock[:O2, O2:], optimize=True)
+  F_mi -= np.einsum('ne,nmie->mi', t1, IJKA, optimize=True)/Nkp
+  F_mi += 0.5 * np.einsum('inef,mnef->mi', tau_tilde, IJAB, optimize=True)/NkpS
+  # F_me
+  F_me = np.zeros((O2, V2),dtype=Fock.dtype)
+  F_me = np.copy(Fock[:O2, O2:])
+  F_me += np.einsum('nf,mnef->me', t1, IJAB, optimize=True)/Nkp
+  # W_mnij
+  W_mnij[:,:,:,:] = np.copy(IJKL)
+  W_mnij += np.einsum('je,mnie->mnij', t1, IJKA, optimize=True)
+  W_mnij -= np.einsum('ie,mnje->mnij', t1, IJKA, optimize=True)
+  tot_mem, avlb_mem = mem_check()
+  o4gb = np.size(W_mnij)*8/(1024**3)
+  if(W_mnij.dtype == complex): o4gb *= 2
+  if(avlb_mem < 2*o4gb):
+    lenm = W_mnij.shape[0]
+    for m in range(lenm):
+      W_mnij[m,:,:,:] += 0.5*np.einsum('nef,ijef->nij',IJAB[m,:,:,:],
+                                       tau,optimize=True)/Nkp 
+  else:
     W_mnij += 0.5 * np.einsum('mnef,ijef->mnij', IJAB, tau, optimize=True)/Nkp
-    # W_mbej
-    W_mbej[:,:,:,:] = np.copy(IABJ)
-    W_mbej += np.einsum('jf,mbef->mbej', t1, IABC, optimize=True)
-    W_mbej += np.einsum('nb,mnje->mbej', t1, IJKA, optimize=True)
-    W_mbej -= 0.5 * np.einsum('jnfb,mnef->mbej', t2, IJAB, optimize=True)/Nkp
-    W_mbej -= np.einsum('jf,nb,mnef->mbej', t1, t1, IJAB, optimize=True)/Nkp
+  # W_mbej
+  W_mbej[:,:,:,:] = np.copy(IABJ)
+  W_mbej += np.einsum('jf,mbef->mbej', t1, IABC, optimize=True)
+  W_mbej += np.einsum('nb,mnje->mbej', t1, IJKA, optimize=True)
+  W_mbej -= 0.5 * np.einsum('jnfb,mnef->mbej', t2, IJAB, optimize=True)/Nkp
+  W_mbej -= np.einsum('jf,nb,mnef->mbej', t1, t1, IJAB, optimize=True)/Nkp
   del IABC, IJAB, IABJ, IJKL, IJKA, W_mnij, W_mbej
   return F_ae, F_mi, F_me
   # return F_ae, F_mi, F_me, W_mnij, W_mbej
@@ -859,7 +917,7 @@ def tx2Eq(T,molecule,scratch,Nkp,tx1,tx2,t1,t2,F_ae,F_mi,F_me,G_ae,G_mi,D2):
 #########################################################################
 # CCSD Xi amplitudes for LR and EOM gradients
 #########################################################################
-def Xi(T,molecule,scratch,Nkp,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
+def Xi(T,molecule,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
 # def Xi(T,Nkp,tx1,tx2,l1,l2,t1,IABC,IJAB,IJKA,F_ae,F_mi,F_me,W_mbej,D2):
   # L can be the ground or excited state Lambda amplitudes
   # Tx can be the LR Tx or the EOM R amplitudes
@@ -867,6 +925,20 @@ def Xi(T,molecule,scratch,Nkp,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
   IJAB = np.load(f"{scratch}/{molecule}-IJAB.npy",mmap_mode='r')
   IJKA = np.load(f"{scratch}/{molecule}-IJKA.npy",mmap_mode='r')
   W_mbej = np.load(f"{scratch}/{molecule}-Wmbej.npy",mmap_mode='r')
+  tot_mem, avlb_mem = mem_check()
+  o4gb = (O2**4)*8/(1024**3)
+  if(tx1.dtype == complex): o4gb *= 2
+  if(avlb_mem < 2*o4gb):
+    Yimjk = np.lib.format.open_memmap(f"{scratch}/{molecule}-Yimjk.npy",
+                                      mode='w+',shape=(O2,O2,O2,O2),
+                                      dtype=tx1.dtype) 
+    Zkijm = np.lib.format.open_memmap(f"{scratch}/{molecule}-Zkijm.npy",
+                                      mode='w+',shape=(O2,O2,O2,O2),
+                                      dtype=tx1.dtype)
+  else:
+    Yimjk = np.zeros((O2,O2,O2,O2),dtype=tx1.dtype)
+    Zkijm = np.zeros((O2,O2,O2,O2),dtype=tx1.dtype)
+#
   if T==1:
     NkpS = Nkp*Nkp
     # Term 1
@@ -993,7 +1065,12 @@ def Xi(T,molecule,scratch,Nkp,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     # Xi2 :  1/4Lg(kmab)R(kmcd)<ij||cd>
     #     :     Lg(kmab)R(kc)t(md)<ij||cd>
     #     :     Lg(kmab)R(kc)<ij||cm>
-    Yimjk = 0.25*np.einsum('ijcd,kmcd->ijkm',IJAB,tx2,optimize=True)/Nkp
+    if(avlb_mem < 2*o4gb):
+      for i in range(O2):
+        Yimjk[i,:,:,:] = 0.25*np.einsum('jcd,kmcd->jkm',IJAB[i,:,:,:],
+                                      tx2,optimize=True)/Nkp
+    else:
+      Yimjk += 0.25*np.einsum('ijcd,kmcd->ijkm',IJAB,tx2,optimize=True)/Nkp
     X2 = np.einsum('imjk,mc->icjk',Yimjk,t1,optimize=True)
     X2 -= 0.25*np.einsum('icbd,jkbd->icjk',IABC,tx2,optimize=True)/Nkp
     Xi1 += np.einsum('icjk,jkac->ia',X2,l2,optimize=True)/NkpS
@@ -1007,7 +1084,12 @@ def Xi(T,molecule,scratch,Nkp,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     #     : 1/4Lg(kicd)R(jmcd)t(kb)<jm||ba>
     # Xi2 : 1/4Lg(ijcd)R(kmcd)<km||ab>
     #     :    Lg(ijcd)R(kc)t(md)<km||ab>
-    Zkijm = 0.25*np.einsum('ijcd,kmcd->ijkm',l2,tx2,optimize=True)/Nkp
+    if(avlb_mem < 2*o4gb):
+      for i in range(O2):
+        Zkijm[i,:,:,:] = 0.25*np.einsum('jcd,kmcd->jkm',l2[i,:,:,:],
+                                      tx2,optimize=True)/Nkp
+    else:
+      Zkijm += 0.25*np.einsum('ijcd,kmcd->ijkm',l2,tx2,optimize=True)/Nkp
     X2 = IJKA + np.einsum('jmba,kb->jmka',IJAB,t1,optimize=True)
     Xi1 += np.einsum('kijm,jmka->ia',Zkijm,X2,optimize=True)/NkpS
     del X2
@@ -1048,6 +1130,9 @@ def Xi(T,molecule,scratch,Nkp,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     X1 = np.einsum('ijcd,kc->ijkd',l2,tx1,optimize=True)
     Xi2 -= np.einsum('ijkd,kdab->ijab',X1,IABC,optimize=True)/Nkp
   del IABC, IJAB, IJKA
+  if(avlb_mem < 2*o4gb):
+    os.system(f"rm {scratch}/{molecule}-Yimjk.npy")
+    os.system(f"rm {scratch}/{molecule}-Zkijm.npy")
   return Xi1, Xi2
 
 #########################################################################
@@ -1281,13 +1366,14 @@ def mol_mass(atoms_list):
 #########################################################################
 # Function to print out tensors
 #########################################################################
-def print_tensor(molecule,PertType,iw,W,tensor,tensorDQ):
+def print_tensor(molecule,PertType,iw,W,tensor,tensorDQ,alpha_mix):
   # molecule: output file
   # PertType: tensor type
   # iw: current frequency for the printing
   # W: frequency value
   # tensor: tensor array
   # tensorDQ: temporary dipole-quadrupole tensor
+  # alpha_mix: mixed-gauge dipole_L-dipole_V tensor
   #
   if(PertType == "DipE"):
     #
@@ -1328,6 +1414,127 @@ def print_tensor(molecule,PertType,iw,W,tensor,tensorDQ):
     for ip in range(3):
       with open(f"{molecule}.txt","a") as writer:
         writer.write(f" {ip+1} {-tensor[iw,ip,0].real:+.6f} {-tensor[iw,ip,1].real:+.6f} {-tensor[iw,ip,2].real:+.6f}\n")
+  elif(PertType == "OR_L"):
+    #
+    # Beta (Electric Dipole-Magnetic Dipole) Origin-Invariant Length Gauge
+    #
+    # Print LG beta tensor
+    tensor[iw,:,:] /= -4*W
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Beta [DipE-DipM] LG Polarizability in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+    # Print alpha(L,V) tensor   
+    alpha_mix[iw,:,:] /= -2*W
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Alpha(L,V) [DipE-DipE] Polarizability in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {alpha_mix[iw,ip,0].real:+.6f} {alpha_mix[iw,ip,1].real:+.6f} {alpha_mix[iw,ip,2].real:+.6f}\n")
+    #
+    # Compute LG(OI) transformation
+    U, s, Vh = np.linalg.svd(alpha_mix[iw,:,:], full_matrices=True, compute_uv=True)
+    if(np.linalg.det(U)<0): U = -U
+    if(np.linalg.det(Vh)<0): Vh = -Vh
+    
+    # pippo1 = np.einsum('ji,ik,lk->jl',np.conjugate(U),tensor[iw,:,:],np.conjugate(Vh),optimize=True)
+    # pippo2 = np.einsum('ij,ik,kl->jl',np.conjugate(U),tensor[iw,:,:],np.conjugate(Vh),optimize=True)
+    # pippo3 = np.einsum('ji,ik,kl->jl',np.conjugate(U),tensor[iw,:,:],np.conjugate(Vh),optimize=True)
+    tensor[iw,:,:] = np.einsum('ij,ik,lk->jl',np.conjugate(U),tensor[iw,:,:],np.conjugate(Vh),optimize=True)
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n Alpha eigenvalues {s} a.u.\n")
+    # del U, s, Vh
+    # Print LG(OI) beta tensor
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Beta [DipE-DipM] LG(OI) Polarizability in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n pippo 1 \n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo1[ip,0].real:+.6f} {pippo1[ip,1].real:+.6f} {pippo1[ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n pippo 2 \n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo2[ip,0].real:+.6f} {pippo2[ip,1].real:+.6f} {pippo2[ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n pippo 3 \n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo3[ip,0].real:+.6f} {pippo3[ip,1].real:+.6f} {pippo3[ip,2].real:+.6f}\n")
+    #
+    # Rotate LG(OI) back using the symmetric alpha(L,V) eigenvectors
+    alpha_mix[iw,:,:] = (alpha_mix[iw,:,:] + np.conjugate(alpha_mix[iw,:,:]).T)/2
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n Alpha Symm for W = {W:.6f} a.u.\n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {alpha_mix[iw,ip,0].real:+.6f} {alpha_mix[iw,ip,1].real:+.6f} {alpha_mix[iw,ip,2].real:+.6f}\n")
+    # Order in decreasing order as SVD
+    s, U0 = np.linalg.eig(alpha_mix[iw,:,:])
+    desc_s = np.argsort(s)[::-1]
+    Us = U0[:,desc_s]
+    if(np.linalg.det(Us)<0): Us = -Us
+    UU = np.einsum('ki,kj->ij',Us,U,optimize=True)
+    for i in range(3):
+      if (UU[i,i]<0): Us[:,i] = -Us[:,i]
+    # U = U0[:,desc_s]
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n Alpha Symm eigenvalues {s[desc_s]} a.u.\n {U}\n")
+    # pippo1 = np.einsum('ji,ik,lk->jl',U,alpha_mix[iw,:,:],np.conjugate(U),optimize=True)
+    # pippo2 = np.einsum('ij,ik,kl->jl',U,alpha_mix[iw,:,:],np.conjugate(U),optimize=True)
+    # pippo3 = np.einsum('ji,ik,kl->jl',U,alpha_mix[iw,:,:],np.conjugate(U),optimize=True)
+    # pippo4 = np.einsum('ij,ik,lk->jl',U,alpha_mix[iw,:,:],np.conjugate(U),optimize=True)
+    # 
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n Alpha Diag for W = {W:.6f} a.u.\n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo1[ip,0].real:+.6f} {pippo1[ip,1].real:+.6f} {pippo1[ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n Alpha Diag for W = {W:.6f} a.u.\n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo2[ip,0].real:+.6f} {pippo2[ip,1].real:+.6f} {pippo2[ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n Alpha Diag for W = {W:.6f} a.u.\n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo3[ip,0].real:+.6f} {pippo3[ip,1].real:+.6f} {pippo3[ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n Alpha Diag for W = {W:.6f} a.u.\n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo4[ip,0].real:+.6f} {pippo4[ip,1].real:+.6f} {pippo4[ip,2].real:+.6f}\n")
+    # pippo1 = np.einsum('ij,ik,lk->jl',Us,tensor[iw,:,:],np.conjugate(Us),optimize=True)
+    # pippo2 = np.einsum('ij,ik,kl->jl',Us,tensor[iw,:,:],np.conjugate(Us),optimize=True)
+    # pippo3 = np.einsum('ji,ik,kl->jl',Us,tensor[iw,:,:],np.conjugate(Us),optimize=True)
+    tensor[iw,:,:] = np.einsum('ji,ik,lk->jl',Us,tensor[iw,:,:],np.conjugate(Us),optimize=True)
+    # Print rotated LG(OI) beta tensor
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Rotated Beta [DipE-DipM] LG(OI) Polarizability in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n pippo 1 \n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo1[ip,0].real:+.6f} {pippo1[ip,1].real:+.6f} {pippo1[ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n pippo 2 \n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo2[ip,0].real:+.6f} {pippo2[ip,1].real:+.6f} {pippo2[ip,2].real:+.6f}\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n pippo 3 \n")
+    # for ip in range(3):
+    #   with open(f"{molecule}.txt","a") as writer:
+    #     writer.write(f" {ip+1} {pippo3[ip,0].real:+.6f} {pippo3[ip,1].real:+.6f} {pippo3[ip,2].real:+.6f}\n")
   elif(PertType == "OR_V" and iw>0):
     #
     # Beta (Electric Dipole-Magnetic Dipole) Modificed Velocity Gauge
@@ -1425,4 +1632,211 @@ def print_tensor(molecule,PertType,iw,W,tensor,tensorDQ):
     for ip in range(3):
       with open(f"{molecule}.txt","a") as writer:
         writer.write(f" {ip+1} {-(tensorDQ[iw,ip,0]/4).real:+.6f} {-(tensorDQ[iw,ip,1]/4).real:+.6f} {-(tensorDQ[iw,ip,2]/4).real:+.6f} {-(tensorDQ[iw,ip,3]/4).real:+.6f} {-(tensorDQ[iw,ip,4]/4).real:+.6f} {-(tensorDQ[iw,ip,5]/4).real:+.6f}\n")
+  elif(PertType == "FullOR_L"):
+    #
+    # Full OR Origin-Invariant Length Gauge LG(OI)
+    # Beta (Electric Dipole-Magnetic Dipole) +  
+    # A (Electric Dipole-Electric Quadrupole)  
+    #
+    # Compute and print regular LG tensors first 
+    # # Beta 
+    # # Divide by frequency
+    tensor[iw,:,:] /= -4*W
+    # Symmetrize beta tensor
+    tensor_lg = np.zeros((3,3),dtype=tensor.dtype)
+    tensor_lg = (tensor[iw,:,:]+tensor[iw,:,:].T)/2
+    trace = np.trace(tensor_lg)
+    np.fill_diagonal(tensor_lg,np.diag(tensor_lg)-trace)
+    tensor_lg /= 2
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Beta contribution to full OR tensor LG in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor_lg[ip,0].real:+.6f} {tensor_lg[ip,1].real:+.6f} {tensor_lg[ip,2].real:+.6f}\n")
+    # A 
+    # Symmetrize A tensor
+    # Indexing note: remember that Python indices start at 0, not 1
+    DQ = np.zeros((3,3),dtype=tensor.dtype)
+    DQ[0,0] = tensorDQ[iw,1,4]-tensorDQ[iw,2,3]
+    DQ[1,0] = (tensorDQ[iw,1,5]-tensorDQ[iw,2,1]+tensorDQ[iw,2,0]-tensorDQ[iw,0,4])/2
+    DQ[2,0] = (tensorDQ[iw,1,2]-tensorDQ[iw,2,5]+tensorDQ[iw,0,3]-tensorDQ[iw,1,0])/2
+    DQ[1,1] = tensorDQ[iw,2,3]-tensorDQ[iw,0,5]
+    DQ[2,1] = (tensorDQ[iw,2,4]-tensorDQ[iw,0,2]+tensorDQ[iw,0,1]-tensorDQ[iw,1,3])/2
+    DQ[2,2] = tensorDQ[iw,0,5]-tensorDQ[iw,1,4]
+    DQ[0,1] = DQ[1,0] 
+    DQ[0,2] = DQ[2,0] 
+    DQ[1,2] = DQ[2,1] 
+    # Divide by frequency
+    DQ /= -8*W
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n A contribution to full OR tensor LG in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {DQ[ip,0].real:+.6f} {DQ[ip,1].real:+.6f} {DQ[ip,2].real:+.6f}\n")
+    # Full tensor
+    tensor_lg += DQ
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n B (beta + A) tensor LG in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor_lg[ip,0].real:+.6f} {tensor_lg[ip,1].real:+.6f} {tensor_lg[ip,2].real:+.6f}\n")
+    del tensor_lg
+    #
+    # Now do LG(OI)
+    # Print alpha(L,V) tensor   
+    alpha_mix[iw,:,:] /= -2*W
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Alpha(L,V) [DipE-DipE] Polarizability in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {alpha_mix[iw,ip,0].real:+.6f} {alpha_mix[iw,ip,1].real:+.6f} {alpha_mix[iw,ip,2].real:+.6f}\n")
+    #
+    # Compute LG(OI) transformation
+    U, s, Vh = np.linalg.svd(alpha_mix.real[iw,:,:], full_matrices=True, compute_uv=True)
+    # print(f"detU = {np.linalg.det(U)}\n")
+    # print(f"detVh = {np.linalg.det(Vh)}\n")
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n U\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {U[ip,0]:+.6f} {U[ip,1]:+.6f} {U[ip,2]:+.6f}\n")
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Vh \n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {Vh[0,ip]:+.6f} {Vh[1,ip]:+.6f} {Vh[2,ip]:+.6f}\n")
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n sigma \n")
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f" {ip+1} {s[0]:+.6f} {s[1]:+.6f} {s[2]:+.6f}\n")
+    # detU = np.linalg.det(U)
+    # detVh = np.linalg.det(Vh)
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n detU = {detU}, detVh = {detVh}\n")
+    if(np.linalg.det(U)<0): U = -U
+    if(np.linalg.det(Vh)<0): Vh = -Vh
+    # transform Beta
+    tensor[iw,:,:] = np.einsum('ij,ik,lk->jl',np.conjugate(U),tensor[iw,:,:],np.conjugate(Vh),optimize=True)
+    # transform A
+    # We need to first expand it to a 3x3x3 tensor, then transform it,
+    # and finally contract it back to 3x6 form
+    tensorDQ3 = np.zeros((3,3,3),dtype=tensor.dtype)
+    tensorDQ3[0,0,0] = tensorDQ[iw,0,0]
+    tensorDQ3[1,0,0] = tensorDQ[iw,1,0]
+    tensorDQ3[2,0,0] = tensorDQ[iw,2,0]
+    tensorDQ3[0,1,1] = tensorDQ[iw,0,1]
+    tensorDQ3[1,1,1] = tensorDQ[iw,1,1]
+    tensorDQ3[2,1,1] = tensorDQ[iw,2,1]
+    tensorDQ3[0,2,2] = tensorDQ[iw,0,2]
+    tensorDQ3[1,2,2] = tensorDQ[iw,1,2]
+    tensorDQ3[2,2,2] = tensorDQ[iw,2,2]
+    tensorDQ3[0,0,1] = tensorDQ[iw,0,3]
+    tensorDQ3[1,0,1] = tensorDQ[iw,1,3]
+    tensorDQ3[2,0,1] = tensorDQ[iw,2,3]
+    tensorDQ3[0,0,2] = tensorDQ[iw,0,4]
+    tensorDQ3[1,0,2] = tensorDQ[iw,1,4]
+    tensorDQ3[2,0,2] = tensorDQ[iw,2,4]
+    tensorDQ3[0,1,2] = tensorDQ[iw,0,5]
+    tensorDQ3[1,1,2] = tensorDQ[iw,1,5]
+    tensorDQ3[2,1,2] = tensorDQ[iw,2,5]
+    tensorDQ3[0,1,0] = tensorDQ3[0,0,1]
+    tensorDQ3[1,1,0] = tensorDQ3[1,0,1]
+    tensorDQ3[2,1,0] = tensorDQ3[2,0,1]
+    tensorDQ3[0,2,0] = tensorDQ3[0,0,2]
+    tensorDQ3[1,2,0] = tensorDQ3[1,0,2]
+    tensorDQ3[2,2,0] = tensorDQ3[2,0,2]
+    tensorDQ3[0,2,1] = tensorDQ3[0,1,2]
+    tensorDQ3[1,2,1] = tensorDQ3[1,1,2]
+    tensorDQ3[2,2,1] = tensorDQ3[2,1,2]
+    tensorDQ3 = np.einsum('ij,ikm,lk,nm->jln',np.conjugate(U),tensorDQ3,np.conjugate(Vh),np.conjugate(Vh),optimize=True)
+    tensorDQ[iw,0,0] = tensorDQ3[0,0,0]
+    tensorDQ[iw,1,0] = tensorDQ3[1,0,0]
+    tensorDQ[iw,2,0] = tensorDQ3[2,0,0]
+    tensorDQ[iw,0,1] = tensorDQ3[0,1,1]
+    tensorDQ[iw,1,1] = tensorDQ3[1,1,1]
+    tensorDQ[iw,2,1] = tensorDQ3[2,1,1]
+    tensorDQ[iw,0,2] = tensorDQ3[0,2,2]
+    tensorDQ[iw,1,2] = tensorDQ3[1,2,2]
+    tensorDQ[iw,2,2] = tensorDQ3[2,2,2]
+    tensorDQ[iw,0,3] = tensorDQ3[0,0,1]
+    tensorDQ[iw,1,3] = tensorDQ3[1,0,1]
+    tensorDQ[iw,2,3] = tensorDQ3[2,0,1]
+    tensorDQ[iw,0,4] = tensorDQ3[0,0,2]
+    tensorDQ[iw,1,4] = tensorDQ3[1,0,2]
+    tensorDQ[iw,2,4] = tensorDQ3[2,0,2]
+    tensorDQ[iw,0,5] = tensorDQ3[0,1,2]
+    tensorDQ[iw,1,5] = tensorDQ3[1,1,2]
+    tensorDQ[iw,2,5] = tensorDQ3[2,1,2]
+    del tensorDQ3
+    # Symmetrize beta tensor
+    tensor[iw,:,:] = (tensor[iw,:,:]+tensor[iw,:,:].T)/2
+    trace = np.trace(tensor[iw,:,:])
+    np.fill_diagonal(tensor[iw,:,:],np.diag(tensor[iw,:,:])-trace)
+    tensor[iw,:,:] /= 2
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Beta contribution to full OR tensor LG(OI) in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+    # A 
+    # Symmetrize A tensor
+    # Indexing note: remember that Python indices start at 0, not 1
+    DQ = np.zeros((3,3),dtype=tensor.dtype)
+    DQ[0,0] = tensorDQ[iw,1,4]-tensorDQ[iw,2,3]
+    DQ[1,0] = (tensorDQ[iw,1,5]-tensorDQ[iw,2,1]+tensorDQ[iw,2,0]-tensorDQ[iw,0,4])/2
+    DQ[2,0] = (tensorDQ[iw,1,2]-tensorDQ[iw,2,5]+tensorDQ[iw,0,3]-tensorDQ[iw,1,0])/2
+    DQ[1,1] = tensorDQ[iw,2,3]-tensorDQ[iw,0,5]
+    DQ[2,1] = (tensorDQ[iw,2,4]-tensorDQ[iw,0,2]+tensorDQ[iw,0,1]-tensorDQ[iw,1,3])/2
+    DQ[2,2] = tensorDQ[iw,0,5]-tensorDQ[iw,1,4]
+    DQ[0,1] = DQ[1,0] 
+    DQ[0,2] = DQ[2,0] 
+    DQ[1,2] = DQ[2,1] 
+    # Divide by frequency squared
+    DQ /= -8*W
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n A contribution to full OR tensor LG(OI) in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {DQ[ip,0].real:+.6f} {DQ[ip,1].real:+.6f} {DQ[ip,2].real:+.6f}\n")
+    # Full tensor
+    tensor[iw,:,:] += DQ
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n B (beta + A) tensor LG(OI) in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+    #
+    # Rotate LG(OI) back using the symmetric alpha(L,V) eigenvectors
+    alpha_mix[iw,:,:] = (alpha_mix[iw,:,:] + np.conjugate(alpha_mix[iw,:,:]).T)/2
+    # Order in decreasing order as SVD
+    s, U0 = np.linalg.eig(alpha_mix.real[iw,:,:])
+    desc_s = np.argsort(s)[::-1]
+    Us = U0[:,desc_s]
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Us for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {Us[ip,0]} {Us[ip,1]} {Us[ip,2]}\n")
+    # print(f"detUs = {np.linalg.det(Us)}\n")
+    # detUs = np.linalg.det(Us)
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"\n detUs = {detUs}\n")
+    if(np.linalg.det(Us)<0): Us = -Us
+    UU = np.einsum('ki,kj->ij',Us,U,optimize=True)
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n UU for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {UU[ip,0]:+.6f} {UU[ip,1]:+.6f} {UU[ip,2]:+.6f}\n")
+    for i in range(3):
+      if (UU[i,i]<0): Us[:,i] = -Us[:,i]
+    tensor[iw,:,:] = np.einsum('ji,ik,lk->jl',Us,tensor[iw,:,:],np.conjugate(Us),optimize=True)
+    # Print rotated LG(OI) beta tensor
+    with open(f"{molecule}.txt","a") as writer:
+      writer.write(f"\n Rotated B tensor LG(OI) in a.u. for W = {W:.6f} a.u.\n")
+    for ip in range(3):
+      with open(f"{molecule}.txt","a") as writer:
+        writer.write(f" {ip+1} {tensor[iw,ip,0].real:+.6f} {tensor[iw,ip,1].real:+.6f} {tensor[iw,ip,2].real:+.6f}\n")
+
+    
   return

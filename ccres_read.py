@@ -598,8 +598,8 @@ def get2e(NB,ipbc,molecule,scratch):
   
   ERI = np.lib.format.open_memmap(f"{scratch}/{molecule}-ERI-AO.npy",mode='w+',
                                   shape=(NBX,NBX,NBX,NBX)) 
-  with open(f"{molecule}.txt","a") as writer:
-    writer.write(f"Load ERI {np.size(ERI)} {ERI.shape} \n")
+  # with open(f"{molecule}.txt","a") as writer:
+  #   writer.write(f"Load ERI {np.size(ERI)} {ERI.shape} \n")
   tot_mem, avlb_mem = mem_check()
   if(avlb_mem*(1024**3) > np.size(ERI)*8):
   # if(False):
@@ -643,8 +643,8 @@ def get2e(NB,ipbc,molecule,scratch):
     #   ERI[i] = baf.matlist["REGULAR 2E INTEGRALS"].get_elemc(*i)
   # print(f" ERI read")
   # exit()
-  with open(f"{molecule}.txt","a") as writer:
-    writer.write(f"Fill ERI\n")
+  # with open(f"{molecule}.txt","a") as writer:
+  #   writer.write(f"Fill ERI\n")
   if(ipbc):
     # ERIpbc = np.zeros((NB,nmtpbc,NB,nmtpbc,NB,nmtpbc,NB))
     # np.save(f"{scratch}/{molecule}-ERI-AO1",ERIpbc)
@@ -654,18 +654,18 @@ def get2e(NB,ipbc,molecule,scratch):
     # ERIpbc = np.load(f"{scratch}/{molecule}-ERI-AO1.npy",mmap_mode='r+')
     ERIpbc = np.lib.format.open_memmap(f"{scratch}/{molecule}-ERI-AO1.npy",
                                        mode='w+',shape=(NB,nmtpbc,NB,nmtpbc,NB,nmtpbc,NB)) 
-    with open(f"{molecule}.txt","a") as writer:
-      writer.write(f"load ERIpbc\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"load ERIpbc\n")
     ERI = ERI.reshape((nmtpbc,NB,nmtpbc,NB,nmtpbc,NB,nmtpbc,NB))
-    with open(f"{molecule}.txt","a") as writer:
-      writer.write(f"reshape ERI\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"reshape ERI\n")
     ERIpbc[:,:,:,:,:,:,:] = ERI[0,:,:,:,:,:,:,:]
-    with open(f"{molecule}.txt","a") as writer:
-      writer.write(f"load ERIpbc\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"load ERIpbc\n")
     del ERIpbc
     os.system(f"mv {scratch}/{molecule}-ERI-AO1.npy {scratch}/{molecule}-ERI-AO.npy")
-    with open(f"{molecule}.txt","a") as writer:
-      writer.write(f"overwrite ERI\n")
+    # with open(f"{molecule}.txt","a") as writer:
+    #   writer.write(f"overwrite ERI\n")
   del ERI
     
     # print(f" ERI slice")
@@ -1094,6 +1094,7 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
   V2k = V2
   ntt = NB*(NB+1)//2
   nttx = ntt
+  NP4 = 0
   if(ipbc):
     kp, l_list = fill_kl(ipbc)
     Nkp = len(kp)
@@ -1162,6 +1163,7 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
       print(f" No velocity electric dipole integrals found\n")
       exit()
   elif(pert_type == "OR_V"):
+    # OR MVG
     NP1 = 3
     NP2 = 3
     NP3 = 0
@@ -1206,7 +1208,76 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
           AOPert[ind] = float(text[i][j])
           ind += 1
     AOPert = AOPert.reshape(NP,nttx)
+  elif(pert_type == "OR_L"):
+    # OR LG(OI)
+    # Order of perturbations is: mu(L), m, mu(V)
+    NP1 = 3
+    NP2 = 3
+    NP3 = 3
+    NP = 9
+    AOPert = np.zeros((NP*nttx))
+    if(f"{mol}_txts/dipole_r.txt"):
+      with open(f"{mol}_txts/dipole_r.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      ind = 0
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+    else:
+      print(f" No electric dipole integrals found\n")
+      exit()
+    if(f"{mol}_txts/magnetic.txt"):
+      with open(f"{mol}_txts/magnetic.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+    if(f"{mol}_txts/dipole_v.txt"):
+      with open(f"{mol}_txts/dipole_v.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+    else:
+      print(f" No velocity electric dipole integrals found\n")
+      exit()
+    AOPert = AOPert.reshape(NP,nttx)
   elif(pert_type == "FullOR_V"):
+    # Full OR tensor MVG
+    # Order of perturbations is: mu(V), m, Theta(V)
     NP1 = 3
     NP2 = 3
     NP3 = 6
@@ -1253,7 +1324,7 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
           AOPert[ind] = float(text[i][j])
           ind += 1
     else:
-      print(f" No velocity electric dipole integrals found\n")
+      print(f" No magnetic dipole integrals found\n")
       exit()
     # Read electric quadrupole integrals ((r Del + Del r)/2)
     if(f"{mol}_txts/quadrupole_v.txt"):
@@ -1274,7 +1345,106 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
           AOPert[ind] = float(text[i][j])
           ind += 1
     else:
+      print(f" No velocity electric quadrupole integrals found\n")
+      exit()
+    AOPert = AOPert.reshape(NP,nttx)
+  elif(pert_type == "FullOR_L"):
+    # Full OR tensor LG(OI)
+    #
+    # Order of perturbations is, initially: # mu(V), mu(L), m,
+    # Theta(V), then we move them to mu(L), m, Theta(V), mu(V). The
+    # reason is that for PBC, we need the mu(V) integrals to correct m
+    # and Theta(V), but then the tensor evaluation expects mu(V) last.
+    NP1 = 3
+    NP2 = 3
+    NP3 = 6
+    NP4 = 3
+    NP = 15
+    AOPert = np.zeros((NP*nttx))
+    # Read electric dipole V integrals (Del)
+    if(f"{mol}_txts/dipole_v.txt"):
+      with open(f"{mol}_txts/dipole_v.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      ind = 0
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+    else:
       print(f" No velocity electric dipole integrals found\n")
+      exit()
+    # Read electric dipole L integrals (r)
+    if(f"{mol}_txts/dipole_r.txt"):
+      with open(f"{mol}_txts/dipole_r.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+    else:
+      print(f" No electric dipole integrals found\n")
+      exit()
+    # Read magnetic dipole integrals (r x Del)
+    if(f"{mol}_txts/magnetic.txt"):
+      with open(f"{mol}_txts/magnetic.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+    else:
+      print(f" No magnetic dipole integrals found\n")
+      exit()
+    # Read electric quadrupole integrals ((r Del + Del r)/2)
+    if(f"{mol}_txts/quadrupole_v.txt"):
+      with open(f"{mol}_txts/quadrupole_v.txt","r") as reader:
+        text=[]
+        for line in reader:
+          text.append(line.split())
+      # Remove parentheses
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          text[i][j] = text[i][j].replace("[","")
+          text[i][j] = text[i][j].replace("]","")
+      # Remove empty slots
+      for i in range(len(text)):
+        text[i][:] = [x for x in text[i] if x]
+      for i in range(len(text)):
+        for j in range(len(text[i])):
+          AOPert[ind] = float(text[i][j])
+          ind += 1
+    else:
+      print(f" No velocity electric quadrupole integrals found\n")
       exit()
     AOPert = AOPert.reshape(NP,nttx)
   else:
@@ -1283,7 +1453,9 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
   if(ipbc):
     # PBC case
     #
-    if(pert_type == "DipE" or pert_type == "FullOR_V"):
+    UMat = []
+    UMatS = []
+    if(pert_type == "DipE" or pert_type == "FullOR_V" or pert_type == "FullOR_L"):
       # For the length gauge electric dipole, for the magnetic dipole
       # and electric quadrupole, we need the translation vector and to
       # form the U matrix
@@ -1311,7 +1483,7 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
       # dS/dk = S'
       OvlDk = getOvl(mol,O,V,NB,ipbc,"MO",True,MOCoef)
       #
-      # Form i(U + 1/2S')
+      # Form i(U + 1/2S') or iU or both
       OrbE = np.diag(Fock.real)
       NOrb2k = NOrb*2*Nkp
       if(len(OrbE)!=NOrb2k):
@@ -1327,6 +1499,12 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
       elif(pert_type == "FullOR_V"):
         # The diagonal of this matrix is -S'/2
         np.fill_diagonal(UMat,-np.diag(OvlDk)/2)
+      elif(pert_type == "FullOR_L"):
+        # We need both matrices
+        UMatS = UMat + 0.5*OvlDk
+        np.fill_diagonal(UMatS,0)
+        UMatS = UMatS*1j
+        np.fill_diagonal(UMat,-np.diag(OvlDk)/2)
       UMat = UMat*1j
       del FockDk, OvlDk, OrbE, DE
     # Now form the perturbation matrices in MO(k) basis
@@ -1335,7 +1513,7 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
     X_ab = np.zeros((NP,Nkp,Nkp,V2,V2),dtype=complex)
     AOPert = AOPert.reshape((NP,nmtpbc,ntt))
     save_p = []
-    if(pert_type == "FullOR_V"):
+    if(pert_type == "FullOR_V" or pert_type == "FullOR_L"):
       save_p = np.zeros((NP1,Nkp*NOrb*2,Nkp*NOrb*2),dtype=complex)
     for n in range (NP):
       Pert_k_lt = fourier("Dir",ipbc,AOPert[n,:,:],False)
@@ -1345,6 +1523,13 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
       elif(pert_type == "DipEV" or pert_type == "FullOR_V"):
         # Electric dipole velocity gauge
         PertA = basis_tran("Dir",True,False,"AHer",NB,Nkp,MOCoef,Pert_k_lt)
+      elif(pert_type == "FullOR_L"):
+        if(n >= NP1 and n <NP1+NP2):
+          # mu(L)
+          PertA = basis_tran("Dir",True,False,"Herm",NB,Nkp,MOCoef,Pert_k_lt)
+        else:
+          # m or Theta(V) or mu(V)
+          PertA = basis_tran("Dir",True,False,"AHer",NB,Nkp,MOCoef,Pert_k_lt)
       Pert = np.zeros((Nkp,NOrb*2,Nkp,NOrb*2),dtype=complex)
       for k in range(Nkp):
         # Fill out the alpha and beta blocks
@@ -1415,6 +1600,53 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
           temp = (temp - np.conjugate(temp).T)/2
           Pert -= temp
           del temp
+      elif(pert_type == "FullOR_L"):
+        # Add UMat contributions to mu(L), m, and Theta(V)
+        Pert = Pert.reshape((Nkp*NOrb*2,Nkp*NOrb*2))
+        if(n < NP1):
+          # Save electric dipole integrals in temporary array
+          save_p[n,:,:] = np.copy(Pert)
+        elif(n < NP1+NP2):
+          # mu(L)
+          Pert -= UMatS*tv[n-NP1]
+        elif(n < NP1+NP2+NP4):
+          # Correct magnetic dipole
+          nn0 = n - (NP1+NP2)
+          nn1 = (nn0+1)%3 
+          nn2 = (nn0+2)%3
+          # with open(f"{mol}.txt","a") as writer:
+          #   writer.write(f"n={n}, nn0={nn0}, nn1={nn1}, nn2={nn2} \n")
+          temp = -tv[nn2]*np.einsum('ij,jk->ik',save_p[nn1,:,:],UMat,optimize=True)
+          temp += tv[nn1]*np.einsum('ij,jk->ik',save_p[nn2,:,:],UMat,optimize=True)
+          temp = (temp - np.conjugate(temp).T)/2
+          # Pert = np.copy(temp)
+          Pert -= temp
+          del temp
+        else:
+          # Correct electric quadrupole
+          nn0 = n - (NP1+NP2+NP4)
+          if(nn0 < 3):
+            nn1 = nn0
+            nn2 = nn0
+            temp = 2*tv[nn2]*np.einsum('ij,jk->ik',save_p[nn1,:,:],UMat,optimize=True)
+          else:
+            if(nn0 == 3):
+              # xy component
+              nn1 = 0
+              nn2 = 1
+            elif(nn0 == 4):
+              # xz component
+              nn1 = 0
+              nn2 = 2
+            elif(nn0 == 5):
+              # yz component
+              nn1 = 1
+              nn2 = 2
+            temp = tv[nn2]*np.einsum('ij,jk->ik',save_p[nn1,:,:],UMat,optimize=True)
+            temp += tv[nn1]*np.einsum('ij,jk->ik',save_p[nn2,:,:],UMat,optimize=True)
+          temp = (temp - np.conjugate(temp).T)/2
+          Pert -= temp
+          del temp
         Pert = Pert.reshape((Nkp,NOrb*2,Nkp,NOrb*2))
       Pert = np.transpose(Pert,axes=(0,2,1,3))
       for k in range(Nkp):
@@ -1427,10 +1659,27 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
         #prod_pert2 += np.einsum('ij,ij->',X_ab[n,k,k,:,:],np.conjugate(X_ab[n,k,k,:,:]),optimize=True)
         # with open(f"{mol}.txt","a") as writer:
         #   writer.write(f"Pert: {n+1}, Nk={k+1}, PertTot={prod_pert.real/2}, PertOV={prod_pert2.real/2} \n")
+    del UMat, UMatS
+    if(pert_type == "FullOR_L"):
+      # First, reorder perturbations and put mu(V) last
+      X_ij = np.roll(X_ij,-3,axis=0)      
+      X_ia = np.roll(X_ia,-3,axis=0)      
+      X_ab = np.roll(X_ab,-3,axis=0)      
     if(pert_type == "DipE"):
       X_ij = np.transpose(X_ij,axes=(0,1,3,2,4))
     elif(pert_type == "DipEV" or pert_type == "FullOR_V"):
       X_ij = np.transpose(X_ij,axes=(0,2,4,1,3))
+    elif(pert_type == "FullOR_L"):
+      X_ij0 = np.zeros((NP,Nkp,O2,Nkp,O2),dtype=X_ij.dtype)
+      for n in range(NP):
+        if(n<NP1):
+          # mu(L)
+          X_ij0[n,:,:,:,:] = np.transpose(X_ij[n,:,:,:,:],axes=(0,2,1,3))
+        else:
+          # m, Theta(V), mu(V)
+          X_ij0[n,:,:,:,:] = np.transpose(X_ij[n,:,:,:,:],axes=(1,3,0,2))
+      X_ij = X_ij0
+      del X_ij0
     else:
       print(f"getPert is confused about X_ij")
       exit()
@@ -1441,6 +1690,17 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
       X_ab = np.transpose(X_ab,axes=(0,1,3,2,4))
     elif(pert_type == "DipEV" or pert_type == "FullOR_V"):
       X_ab = np.transpose(X_ab,axes=(0,2,4,1,3))
+    elif(pert_type == "FullOR_L"):
+      X_ab0 = np.zeros((NP,Nkp,V2,Nkp,V2),dtype=X_ab.dtype)
+      for n in range(NP):
+        if(n<NP1):
+          # mu(L)
+          X_ab0[n,:,:,:,:] = np.transpose(X_ab[n,:,:,:,:],axes=(0,2,1,3))
+        else:
+          # m, Theta(V), mu(V)
+          X_ab0[n,:,:,:,:] = np.transpose(X_ab[n,:,:,:,:],axes=(1,3,0,2))
+      X_ab = X_ab0
+      del X_ab0
     else:
       print(f"getPert is confused about X_ab")
       exit()
@@ -1449,6 +1709,11 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
     if(pert_type == "DipE"):
       X_ij = np.conjugate(X_ij)
       X_ab = np.conjugate(X_ab)
+    elif(pert_type == "FullOR_L"):
+      for n in range(NP1):
+        # mu(L)
+        X_ij[n,:,:] = np.conjugate(X_ij[n,:,:])
+        X_ab[n,:,:] = np.conjugate(X_ab[n,:,:])
     # elif(pert_type == "DipEV"):
     #   X_ia = np.conjugate(X_ia)
   else:
@@ -1462,6 +1727,19 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
       # Electric dipole, magnetic dipole, electric quadrupole velocity gauge
       for n in range (NP):
         PertSQ[n,:,:] = square_m(NB,True,"ASym",AOPert[n,:],PertSQ[n,:,:])
+    elif(pert_type == "OR_L" or pert_type == "FullOR_L"):
+      if(pert_type == "FullOR_L"):
+        # First, reorder perturbations and put mu(V) last
+        AOPert[:,:] = np.roll(AOPert,-3,axis=0)      
+      # Electric dipole length, electric dipole , magnetic dipole,
+      # electric quadrupole velocity gauge
+      for n in range (NP):
+        if n < NP1:
+          # mu L is symmetric
+          PertSQ[n,:,:] = square_m(NB,True,"Sym",AOPert[n,:],PertSQ[n,:,:])
+        else:
+          # all other multipoles are antisymmetric
+          PertSQ[n,:,:] = square_m(NB,True,"ASym",AOPert[n,:],PertSQ[n,:,:])
     temp = np.einsum('im,kml,jl->kij',MOCoef,PertSQ,MOCoef,optimize=True)
     X_ij = np.zeros((NP,O2,O2))
     X_ia = np.zeros((NP,O2,V2))
@@ -1484,5 +1762,5 @@ def getPert(O, V, NB, ipbc, MOCoef, Fock, pert_type, mol):
           # X_ab[n,a,b] = temp[n,a+O,b+O]
           # X_ab[n,a+V,b+V] = temp[n,a+O,b+O]
     del temp, AOPert, PertSQ
-  return NP, NP1, NP2, NP3, X_ij, X_ia, X_ab
+  return NP, NP1, NP2, NP3, NP4, X_ij, X_ia, X_ab
 
