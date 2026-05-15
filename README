@@ -4,12 +4,90 @@ for molecular and 1D periodic systems.
 This program is licensed under the terms of the GNU General Public
 License v3.0 or later
 
-In version v1.1.0, the electric dipole-electric dipole
-polarizability in the length and velocity gauges is implemented.
+In version v1.2.0,  available LR functions:
+ DipE : electric dipole-electric dipole polarizability - LG
+ DipEV : electric dipole-electric dipole polarizability - MVG
+ OR_L : optical rotation beta tensor - molecules only - LG(OI)
+   (electric dipole-magnetic dipole) 
+ OR_V : optical rotation beta tensor - molecules only - MVG
+   (electric dipole-magnetic dipole) 
+ FullOR_L : optical rotation full tensor - LG(OI)
+   (electric dipole-magnetic dipole + electric dipole-electric quadrupole) 
+ FullOR_V : optical rotation full tensor - MVG
+   (electric dipole-magnetic dipole + electric dipole-electric quadrupole) 
 
 ------------------------------------------------------------------
 Python and Numpy Versions:
 It has been tested with Python v3.11-12 and NumPy v1.24-26
+
+------------------------------------------------------------------
+Input file:
+
+The program reads an input file <input_name>.py, which should contain
+the following information:
+
+# Molecule to run procedure on
+molecule = "h2o2-321g"
+#
+# Name of the output file
+output_file = "h2o2-321g-forv" 
+#
+#2-electron integrals baf file
+eri = "h2o2-321g" 
+#
+#Path to scratch directory
+scratch = "/Users/marco/scratch" 
+#
+# Path to gauopen directory
+path_gauopen = "/Volumes/gaussian/gdv_j30p/" 
+#
+# Memory limit (GB) for calculations on Linux platforms
+memory = 100 
+#
+# Energy Convergence Threshold (a.u.)
+ThrE = 1e-8
+#
+# Amplitude Convergence Threshold 
+ThrA = 1e-6
+#
+# Maximum number of iterations
+MaxIt = 1000
+#
+# Perturbation frequencies in nm
+WLlist = [1000]
+#
+# Maximum dimension of DIIS extrapolation subspace
+MaxD = 6
+#
+# Extrapolation frequency for DIIS
+RepD = 5 
+#
+# Perturbation type
+PertType = "FullOR_V"
+#
+# Translation vector (Ang) for PBC calculations 
+tv = [4.0,0.0,0.0] 
+#
+# Frozen core approximation
+FreezeCore = True 
+
+Some of these entries are optional and the program will use default
+values if they are missing:
+ThrE = 1e-8
+ThrA = 1e-6
+MaxIt = 1000
+WLlist = [500]
+MaxD = 6
+RepD = 5 
+PertType = "DipE"
+
+The entry "molecule" refers to the name of the directory where the HF
+data is stored: {molecule}_txts, see section "Generating HF data".
+
+The entry "eri" refers to the 2ERI baf from GAUSSIAN: {eri}.baf
+
+The entry "memory" impose a hard memory limit (GB) on Linux
+machines. It does not work on Mac machines.
 
 ------------------------------------------------------------------
 Generating HF data:
@@ -18,92 +96,43 @@ either molecular or 1D periodic, using the "gauopen" functionality
 (visit the Gaussian, Inc., website for information about how to
 install gauopen). See the example Gaussian input files for how to
 generate the binary array file (baf) that contains the needed
-information: "Mol_Baf.gjf" and "PBC_Baf.gjf".
+information: <gaussian-input>.gjf.
 
-0) Insert the gauopen path in the readgau.py and ccres_read.py
-files. Search for the "GAUOPEN path" comment.
+- To generate the reference data once the baf file is available, run:
 
-1) To generate the reference data once the baf file is available, run:
-python3 readgau.py <namefile>.baf <namefile>
+  python3 readgau.py <input_name>
 
-  This will generate a <namefile>_txts directory with all the necessary
+  This will generate a <molecule>_txts directory with all the necessary
   files.
 
-2) For the 1D PBC case with the length gauge, another file with the
-translation vector is needed. To generate it, run:
-  echo "X.X X.X X.X" > <namefile>_txts/tv.txt
-
-  This will generate the tv.txt file containing the vector's coordinates
-  in Angstrom (e.g., same as the Tv coordinates in "PBC_Baf.gjf").
-
-3) For 1D PBC, the two electron integrals (2ERIs) must be generated
-from a molecular calculation in GAUSSIAN and stored in a different baf
-file. The geometry must be built as:
+- For 1D PBC, the two electron integrals (2ERIs) must be generated
+  from a molecular calculation in GAUSSIAN and stored in a different baf
+  file: <eri>.baf. The geometry must be built as:
   Cell 0
   Cell +1
   Cell -1
   Cell +2
   Cell -2
   etc.
-
   The total number of cells must equal NMtPBC as in the PBC job that
-  generates the baf file in point 1. See the example test job
-  "2ERI.gjf" for how to build a geometry corresponding to the
-  "PBC_Baf.gjf" job file.  The 2ERIs will be read directly from the
-  this baf.
+  generates the reference baf file. See the example test job
+  "h2_eri.gjf" for how to build a geometry corresponding to the
+  "h2_pbc.gjf" job file.  The 2ERIs will be read directly from <eri>.baf.
 
 -------------------------------------------------------------------
 Creating the scratch directory:
 
 Create a scractch directory for the CCResPy scratch files and insert
-the path in the ccres.py file. Search for "Scratch path"
-
--------------------------------------------------------------------
-Modifying CCResPy defaults:
-In this first version, all thresholds are hardwired and must be
-modified directly in the ccres.py file. Newer versions of the program
-will include an input file parser to modify these values.
-
-Useful variables:
-- ThrE: energy convergence threshold (set to 1e-08)
-- MaxIt: max number of allowed iterations (set to 1000)
-- Wlist: list of wavelengths for LR calculations (current set includes
-  1000, 700, 600, 500, 300nm)
-- MaxD: dimension+1 of the DIIS subspace (set to 6 for a subspace of
-  dimension 5)
-- RepD: interval of iterations for DIIS extrapolation (set to 5, i.e.,
-  a DIIS extrapolation every 5 regular iterations).
-- PertType: "DipE" for length gauge electric dipole or "DipEV" for
-  velocity gauge electric dipole.
+the path in the input file <input_name>.py
 
 -------------------------------------------------------------------
 Running a CCResPy job:
 
-Select PertType = DipE for length gauge (LG) or = DipEV for modified
-velocity gauge (MVG)
+  python3 ccres.py <input_name>
 
-Molecular case, run:
-  python3 ccres.py <namefile> <namefile>
-
-  This will read the information from the directory "<namefile>_txts"
-  and the 2ERIs from the <namefile>.baf file.
-
-1D case, run:
-  python3 ccres.py <namefile> <2ERI_file>
-
-  This will read the information from the directory "<namefile>_txts"
-  and the 2ERIs from the <2ERI_file>.baf file generated as in point 3)
-  above. The file name, including that of the 2ERIs are arbitrary and
-  can be changed.
-
-On Linux machines, a maximum memory limit can be specified as a third
-argument, in GB:
-  python3 ccres.py <namefile>  <2ERI_file>.baf 200
-
-  This imposes a hard limit of 200GB on memory allocation and usage.
-
-In all cases, a <namefile>.txt output file will be created with the
-results of the calculation.
+The <output_file>.txt output file will be created with the results of
+the calculation. For a molecular case, remember that <molecule> and
+<eri> should be the same (same baf file).
 
 -------------------------------------------------------------------
 Example folder
@@ -112,13 +141,19 @@ The examples folder contains example files for the GAUSSIAN jobs to
 generate the bafs and the corresponding CCResPy output examples.
 
 GAUSSIAN input job files:
-- Mol_Baf.gjf: GAUSSIAN job file for a molecular calculation.
-- PBC_Baf.gjf: GAUSSIAN job file for a 1D PBC calculation.
-- 2ERI.gjf: GAUSSIAN job file to generate the 2ERIs the PBC_Baf example
+- h2_mol.gjf: GAUSSIAN job file for a molecular calculation.
+- h2_pbc.gjf: GAUSSIAN job file for a 1D PBC calculation.
+- h2_eri.gjf: GAUSSIAN job file to generate the 2ERIs the PBC_Baf example
+- h4-example.gjf: GAUSSIAN job file to generate all baf files for a
+  chiral H4 molecule and 1D periodic chain
 
 CResPy output files:
-- h2_example_mol_lg.txt: output file for a LG molecular calculation
-- h2_example_pbc_lg.txt: output file for a LG PBC calculation
-- h2_example_mol_mvg.txt: output file for a MVG molecular calculation
-- h2_example_pbc_mvg.txt: output file for a MVG PBC calculation
+- h2_example_mol_al.txt: output file for a DipE LG molecular calculation
+- h2_example_pbc_al.txt: output file for a DipE LG PBC calculation
+- h2_example_mol_av.txt: output file for a DipEV molecular calculation
+- h2_example_pbc_av.txt: output file for a DipEV PBC calculation
+- h4_example_mol_orl.txt: molecular OR_L LG(OI) tensor
+- h4_example_mol_orv.txt: molecular OR_L MVG tensor
+- h4_example_pbc_orl.txt: PBC FullOR_L LG(OI) tensor
+- h4_example_pbc_orv.txt: PBC FullOR_L MVG tensor
 

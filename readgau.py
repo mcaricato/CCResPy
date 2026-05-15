@@ -15,23 +15,50 @@ import math
 import io
 import numpy as np
 import copy
-# GAUOPEN path
-sys.path.insert(0, '/Volumes/gaussian/gdv_j30p/')
+import importlib
+from pathlib import Path
 np.set_printoptions(precision=16,threshold=sys.maxsize,floatmode='fixed')
-
-from gauopen import QCOpMat as qco
-from gauopen import QCBinAr as qcb
-from gauopen import QCUtil as qcu
-from gauopen import QCUtilH as su
+# # GAUOPEN path
+# sys.path.insert(0, '/Volumes/gaussian/gdv_j30p/')
+# from gauopen import QCOpMat as qco
+# from gauopen import QCBinAr as qcb
+# from gauopen import QCUtil as qcu
+# from gauopen import QCUtilH as su
 
 
 def main():
 # open the file
   FName = sys.argv[1]
-  mol=sys.argv[2]
+  file_name = importlib.import_module(FName)
+  # Input baf name
+  try:
+    mol = file_name.molecule
+  except AttributeError: 
+    print("No molecule specified for calculation")
+    exit()
+  # mol=sys.argv[2]
   os.system(f"mkdir {mol}_txts")
+  # Gauopen path
+  try: 
+    path_gauopen = file_name.path_gauopen
+  except AttributeError:
+    print("Gauopen directory not specified")
+    exit()
+  fileg = Path(f"{path_gauopen}")
+  if os.path.isdir(fileg):
+    pass
+  else:
+    print("Gauopen directory does not exist")
+    exit()
+  sys.path.insert(0,f"{path_gauopen}")
+  from gauopen import QCOpMat as qco
+  from gauopen import QCBinAr as qcb
+  from gauopen import QCUtil as qcu
+  from gauopen import QCUtilH as su
+  
  
-  baf = qcb.QCBinAr(file=FName)
+  baf = qcb.QCBinAr(file=f"{mol}.baf")
+  # baf = qcb.QCBinAr(file=FName)
   geometry = baf.c
   atoms_list = baf.ian
   nb = baf.nbasis
