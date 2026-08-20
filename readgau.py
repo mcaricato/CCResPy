@@ -51,10 +51,10 @@ def main():
     print("Gauopen directory does not exist")
     exit()
   sys.path.insert(0,f"{path_gauopen}")
-  from gauopen import QCOpMat as qco
+  # from gauopen import QCOpMat as qco
   from gauopen import QCBinAr as qcb
-  from gauopen import QCUtil as qcu
-  from gauopen import QCUtilH as su
+  # from gauopen import QCUtil as qcu
+  # from gauopen import QCUtilH as su
   
  
   baf = qcb.QCBinAr(file=f"{mol}.baf")
@@ -79,6 +79,7 @@ def main():
     # This is a PBC calculation
     #
     ipbc = baf.matlist["File 733 Integers"].array
+    npdir = ipbc[0]
     nmtpbc = ipbc[1]
     nbx = nb*nmtpbc
     with open(f"{mol}_txts/pbc_info.txt","w") as writer:
@@ -86,6 +87,7 @@ def main():
     # twoeint = baf.matlist["PBC 2E INTEGRALS"]#.array.reshape((nbx,nbx,nbx,nbx))
     ntt = (nb*(nb+1))//2
     occ = [noa,nob,nva,nvb,baf.nfc,baf.nfv]
+    print(f"occ: {occ}, {nae}, {baf.nfc}, {baf.ne}, {baf.multip}")
     with open(f"{mol}_txts/occ.txt","w") as writer:
       writer.write(str(occ))
     miller_ind = baf.matlist["K-POINT MILLER INDICES"].expand()
@@ -105,6 +107,28 @@ def main():
       writer.write(str(MO_weights))
     orbE = baf.matlist["PBC ORBITAL ENERIES"].expand()
     mocoef=baf.matlist["PBC ALPHA ORBITALS"].array
+    # if "File 745 Integers" in baf.matlist:
+    #   kgrid = baf.matlist["File 745 Integers"].array
+    #   print(f"kgrid stuff: {kgrid.shape}, {len(kgrid)} \n {kgrid}")
+    if "File 745 Reals" in baf.matlist:
+      kgrid1 = baf.matlist["File 745 Reals"].array
+      NDim,NKPnt = np.frombuffer(kgrid1[0], dtype='<i4')
+      kgrid = np.frombuffer(kgrid1[1:4*NKPnt+1], dtype='<i4')
+      kgrid = np.array(kgrid.reshape((4*NKPnt,2)))
+      kgrid = kgrid[:,0]
+      # kgrid = kgrid.reshape((4*NKPnt))
+      nkorb = kgrid[:NKPnt]
+      posgrid = kgrid[NKPnt:].reshape((NKPnt,3))
+      if(npdir == 1):
+        posgrid = posgrid[:,0]
+      elif(npdir == 2):
+        posgrid = posgrid[:,:-1]
+      np.save(f"{mol}_txts/grid-coord",posgrid)
+      print(f"kgrid int stuff: {kgrid.shape}, {len(kgrid)} \n {kgrid}")
+      print(f"kgrid Orbitals: {len(nkorb)} \n {nkorb}")
+      print(f"kgrid coordinates: {posgrid.shape}, {len(posgrid)} \n {posgrid}")
+      # print(f"kgrid real stuff: {kgrid1.shape}, {len(kgrid1)}, {NKPnt}, {NDim} \n {kgrid1[4*NKPnt+1:]}")
+      # exit()
   else:
     #
     # This is a molecular calculation
