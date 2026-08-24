@@ -31,12 +31,13 @@ np.set_printoptions(precision=16,threshold=sys.maxsize,floatmode='fixed')
 ##########################################################################
 def input_parser(input_file):
   # Define default Settings
-  ThrE0 = 1e-8     # Energy convervegence threshold (au)
+  Method0 = f"CCSD"   # Level of theory
+  ThrE0 = 1e-8        # Energy convervegence threshold (au)
   # ThrA0 = ThrE0*100 # Amplitude convergence threshold
-  MaxIt0 = 1000    # Max number of iterations
-  WLlist0 = [500]   # List of wavelengths (nm) of external field
-  MaxD0 = 6        # Max size of DIIS subspace
-  RepD0 = 5        # Iterations interval between DIIS extrpolations 
+  MaxIt0 = 1000       # Max number of iterations
+  WLlist0 = [500]     # List of wavelengths (nm) of external field
+  MaxD0 = 6           # Max size of DIIS subspace
+  RepD0 = 5           # Iterations interval between DIIS extrpolations 
   PertType0 = f"DipE" # Linear response function
   Kstore0 = f"collective" # Use collective indices for k points
   # tv = np.array([4.0, 0.0, 0.0])
@@ -155,6 +156,11 @@ def input_parser(input_file):
     tv = file_name.tv
   except AttributeError:
     tv = [0.0,0.0,0.0]
+  # Level of theory
+  try: 
+      Method = file_name.Method
+  except AttributeError:
+      Method = Method0
   #
   # Convert wavelengths (nm) to frequency (au)
   hartree = physical_constants['Hartree energy'][0]
@@ -166,12 +172,12 @@ def input_parser(input_file):
     freq = (h*c*1e9) / (value*hartree)
     Wlist.append(freq)
   #
-  return ThrE, ThrA, MaxIt, Wlist, MaxD, RepD, PertType, tv, FreezeCore, memory, scratch, path_gauopen, eri, mol_inp, mol_out, Kstore
+  return ThrE, ThrA, MaxIt, Wlist, MaxD, RepD, PertType, tv, FreezeCore, memory, scratch, path_gauopen, eri, mol_inp, mol_out, Kstore, Method
 
 ##########################################################################
 # Initialize output file
 ##########################################################################
-def Initialize(mol_out,memory,ThrE,MaxIt,Wlist): 
+def Initialize(mol_out,memory,ThrE,MaxIt,Wlist,Method,PertType): 
   #Clean previous outputs
   os.system(f"rm {mol_out}.txt")
   tot_mem, avlb_mem = mem_check()
@@ -194,19 +200,37 @@ def Initialize(mol_out,memory,ThrE,MaxIt,Wlist):
       writer.write(f"Soft Memory Limit: {soft:.2f}GB, Hard Memory Limit: {hard:.2f}GB \n") 
   with open(f"{mol_out}.txt","a") as writer:
     writer.write(f"\nEnergy convergence threshold: {ThrE:.1e} au -- Max N Iterations: {MaxIt}\n")
-  with open(f"{mol_out}.txt","a") as writer:
-    writer.write(f"\nField frequency (a.u.) / wavelength (nm):\n")
-  hartree = physical_constants['Hartree energy'][0]
-  WLlist = []
-  for i in range(len(Wlist)): 
-    value = float(Wlist[i])
-    if(value==0):
-      WLlist.append("static")
-    else:
-      wl = (h*c*1e9) / (value*hartree)
-      WLlist.append(wl)
+    writer.write(f"\nLevel of theory: {Method}\n")
+    writer.write(f"\nCalculation type:\n")
+  if(PertType != "Energy"):
     with open(f"{mol_out}.txt","a") as writer:
-      writer.write(f"{Wlist[i]:f} / {WLlist[i]}\n")
+      if(PertType == "DipE"):
+        writer.write(f"LG Electric dipole-electric dipole polarizability\n")
+      elif(PertType == "DipEV"):
+        writer.write(f"MVG Electric dipole-electric dipole polarizability\n")
+      elif(PertType == "OR_L"):
+        writer.write(f"LG(OI) Beta OR (electric dipole-magnetic dipole) polarizability\n")
+      elif(PertType == "OR_V"):
+        writer.write(f"MVG Beta OR (electric dipole-magnetic dipole) polarizability\n")
+      elif(PertType == "FullOR_L"):
+        writer.write(f"LG(OI) Full OR (electric dipole-magnetic dipole +\n electric dipole - electric quadrupole) polarizability\n")
+      elif(PertType == "FullOR_V"):
+        writer.write(f"MVG Full OR (electric dipole-magnetic dipole +\n electric dipole - electric quadrupole) polarizability\n")
+      writer.write(f"\nField frequency (a.u.) / wavelength (nm):\n")
+    hartree = physical_constants['Hartree energy'][0]
+    WLlist = []
+    for i in range(len(Wlist)): 
+      value = float(Wlist[i])
+      if(value==0):
+        WLlist.append("static")
+      else:
+        wl = (h*c*1e9) / (value*hartree)
+        WLlist.append(wl)
+      with open(f"{mol_out}.txt","a") as writer:
+        writer.write(f"{Wlist[i]:f} / {WLlist[i]}\n")
+  else:
+    with open(f"{mol_out}.txt","a") as writer:
+      writer.write(f"Energy\n")
   return 
 
 ##########################################################################

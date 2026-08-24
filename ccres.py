@@ -55,10 +55,10 @@ if len(sys.argv)<2:
   print("Missing input file")
   exit()
 input_file = sys.argv[1]
-ThrE, ThrA, MaxIt, Wlist, MaxD, RepD, PertType, tv, FreezeCore, memory, scratch, path_gauopen, eri, mol_inp, mol_out, Kstore = input_parser(input_file)
+ThrE, ThrA, MaxIt, Wlist, MaxD, RepD, PertType, tv, FreezeCore, memory, scratch, path_gauopen, eri, mol_inp, mol_out, Kstore, Method = input_parser(input_file)
 #
 # Initialize output file
-Initialize(mol_out,memory,ThrE,MaxIt,Wlist)
+Initialize(mol_out,memory,ThrE,MaxIt,Wlist,Method,PertType)
 #
 # Retrieve various quantities
 O, V, FC, FV, NB, scfE, MOCoef_Tot, ipbc, k_weights, atoms_list = getFort(mol_inp,mol_out,FreezeCore)
@@ -301,7 +301,15 @@ F_mi = []
 F_me = []
 t1, t2 = AmpIt("T",mol_out,scratch,Ok,Vk,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
                tau,F_ae,F_mi,F_me,D1,D2,D1,D2,t1,t2,t1,t2,t1,t2,ipbc,
-               Kstore,Ktable)
+               Kstore,Ktable,Method)
+#
+# Energy Calculation Only
+if PertType == "Energy" or Method == "CC2": # For now, only the energy is implemented at CC2 level
+  with open(f"{mol_out}.txt","a") as writer:
+    writer.write(f"Total Calculation Time: {time.time()-start0:.2f}s\n")
+  # Delete scratch file
+  os.system(f"rm {scratch}/{mol_out}*.npy")
+  exit()
 #
 ##########################################################################  
 # Compute constant intermediates
@@ -315,15 +323,16 @@ else:
   exit()
 if(ipbc and Kstore == "compress"):
   tau_tilde = tau_tildeEq3k(Nkp,t1,t2)
-  tau = tauEq3k(Nkp,t1,t2)
-  F_ae,F_mi,F_me = T_interm3k(mol_out,scratch,Ok,Vk,Nkp,Ktable,Fock,t1,t2,
-                              tau_tilde,tau)
+  tau = tauEq3k(Nkp,t1,t2,Method)
+  F_ae,F_mi,F_me,F_ae2,F_mi2,F_me2 = T_interm3k(mol_out,scratch,Ok,Vk,Nkp,Ktable,
+                                                Fock,t1,t2,tau_tilde,tau,Method)
   F_ae,F_mi = Const_Interm3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,
                              F_mi,F_me)
 else:
   tau_tilde = tau_tildeEq(Nkp,t1,t2)
-  tau = tauEq(Nkp,t1,t2)
-  F_ae,F_mi,F_me = T_interm(mol_out,scratch,Ok,Vk,Nkp,Fock,t1,t2,tau_tilde,tau)
+  tau = tauEq(Nkp,t1,t2,Method)
+  F_ae,F_mi,F_me,F_ae2,F_mi2,F_me2 = T_interm(mol_out,scratch,Ok,Vk,Nkp,Fock,t1,t2,
+                                              tau_tilde,tau,Method)
   F_ae,F_mi = Const_Interm(mol_out,scratch,Nkp,t1,t2,tau,F_ae,F_mi,F_me)
 tot_mem, avlb_mem = mem_check()
 with open(f"{mol_out}.txt","a") as writer:
@@ -340,7 +349,7 @@ with open(f"{mol_out}.txt","a") as writer:
   writer.write("****************************************************\n")
 l1, l2 = AmpIt("L",mol_out,scratch,Ok,Vk,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
                tau,F_ae,F_mi,F_me,D1,D2,D1,D2,t1,t2,l1,l2,t1,t2,ipbc,
-               Kstore,Ktable)
+               Kstore,Ktable,Method)
 np.save(f"{scratch}/{mol_out}-l1",l1)
 np.save(f"{scratch}/{mol_out}-l2",l2)
 del l1, l2
@@ -454,7 +463,7 @@ for iw in range(len(Wlist)):
                                                    Nkp,MaxIt,ThrE,ThrA,scfE,
                                                    Fock,tau,F_ae,F_mi,F_me,rhs1,
                                                    rhs2,D1,D2,t1,t2,t1,t2,ttx1,
-                                                   ttx2,ipbc,Kstore,Ktable)
+                                                   ttx2,ipbc,Kstore,Ktable,Method)
           tx1prod = np.einsum('Iia,Iia->',ttx1,np.conjugate(ttx1),optimize=True)/Nkp
           tx2prod = np.einsum('IJAijab,IJAijab->',ttx2,np.conjugate(ttx2),optimize=True)/Nkp**3
         else:
@@ -462,7 +471,7 @@ for iw in range(len(Wlist)):
                                            MaxIt,ThrE,ThrA,scfE,Fock,tau,
                                            F_ae,F_mi,F_me,rhs1,rhs2,D1,D2,
                                            t1,t2,t1,t2,ttx1,ttx2,ipbc,Kstore,
-                                           Ktable)
+                                           Ktable,Method)
           tx1prod = np.einsum('ia,ia->',ttx1,np.conjugate(ttx1),optimize=True)/Nkp
           tx2prod = np.einsum('ijab,ijab->',ttx2,np.conjugate(ttx2),optimize=True)/Nkp**3
         print(f"tx1: {tx1prod}, tx2: {tx2prod}")

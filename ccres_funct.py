@@ -169,7 +169,7 @@ def denom3k(O2,V2,ipbc,Ktable,Fock,W):
 ##########################################################################
 def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
           tau,F_ae,F_mi,F_me,rhs1,rhs2,D1,D2,t1,t2,l1,l2,tx1,tx2,ipbc,
-          Kstore,Ktable):
+          Kstore,Ktable,Method):
 # def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,IJKL,
 #           IABC,IJAB,IABJ,IJKA,tau,W_efam,W_iemn,W_mbej,W_mnij,
 #           F_ae,F_mi,F_me,rhs1,rhs2,D1,D2,t1,t2,l1,l2,tx1,tx2,ipbc):
@@ -206,22 +206,38 @@ def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
       # Calculate intermediates and perform amplitude iterations
       if(ipbc and Kstore == "compress"):
         tau_tilde = tau_tildeEq3k(Nkp,t1,t2)
-        tau = tauEq3k(Nkp, t1, t2)
-        F_ae,F_mi,F_me = T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,
-                                    t1,t2,tau_tilde,tau)
+        tau = tauEq3k(Nkp,t1,t2,Method)
+        F_ae,F_mi,F_me,F_ae2,F_mi2,F_me2 = T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,
+                                                      Fock,t1,t2,tau_tilde,tau,Method)
         t1_f = t1Eq3k(mol_out,scratch,O,V,Nkp,Fock,t1,t2,F_ae,F_mi,F_me,D1)
-        t2_f = t2Eq3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me,D2)
+        if(Method == "CCSD"):
+          Fae = F_ae
+          Fmi = F_mi
+          Fme = F_me
+        elif(Method == "CC2"):
+          Fae = F_ae2
+          Fmi = F_mi2
+          Fme = F_me2
+        t2_f = t2Eq3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,Fae,Fmi,Fme,D2,Method)
         prod = np.einsum('lae,lae',t1_f,t1_f,optimize=True)
         print(f"t1 = {prod}")
         prod = np.einsum('ijklmnq,ijklmnq',t2_f,t2_f,optimize=True)
         print(f"t2 = {prod}")
       else:
         tau_tilde = tau_tildeEq(Nkp,t1,t2)
-        tau = tauEq(Nkp,t1,t2)
-        F_ae,F_mi,F_me = T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,
-                                  tau_tilde,tau)
+        tau = tauEq(Nkp,t1,t2,Method)
+        F_ae,F_mi,F_me,F_ae2,F_mi2,F_me2 = T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,
+                                                    tau_tilde,tau,Method)
         t1_f = t1Eq(mol_out,scratch,O,V,Nkp,Fock,t1,t2,F_ae,F_mi,F_me,D1)
-        t2_f = t2Eq(1,mol_out,scratch,Nkp,t1,t2,tau,F_ae,F_mi,F_me,D2)
+        if(Method == "CCSD"):
+          Fae = F_ae
+          Fmi = F_mi
+          Fme = F_me
+        elif(Method == "CC2"):
+          Fae = F_ae2
+          Fmi = F_mi2
+          Fme = F_me2
+        t2_f = t2Eq(mol_out,scratch,Nkp,t1,t2,tau,Fae,Fmi,Fme,D2,Method)
         prod = np.einsum('ae,ae',t1_f,t1_f,optimize=True)
         print(f"t1 = {prod}")
         prod = np.einsum('ijkl,ijkl',t2_f,t2_f,optimize=True)
@@ -229,9 +245,9 @@ def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
       del F_ae,F_mi,F_me
       # Check for convergence
       if(ipbc and Kstore == "compress"):
-        tau = tauEq3k(Nkp,t1_f,t2_f)
+        tau = tauEq3k(Nkp,t1_f,t2_f,"CCSD")
       else:
-        tau = tauEq(Nkp, t1_f, t2_f)
+        tau = tauEq(Nkp, t1_f, t2_f,"CCSD")
       IJAB = np.load(f"{scratch}/{mol_out}-IJAB.npy",mmap_mode='r')
       not_conver,E_Corr2,t1,t2 = AmpConv(AmpType,O,Nkp,t1,t2,t1_f,t2_f,tau,
                                          Fock,D1,IJAB,ThrE,ThrA,E_Corr1,
@@ -327,7 +343,7 @@ def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
     tot_mem, avlb_mem = mem_check()
     if(AmpType == "T"):
       with open(f"{mol_out}.txt","a") as writer:
-        writer.write(f"E(CCSD) = {scfE+E_Corr2:+.10f} au \n")      
+        writer.write(f"E({Method}) = {scfE+E_Corr2:+.10f} au \n")      
     with open(f"{mol_out}.txt","a") as writer:
       writer.write(f"{AmpType} amplitude equations converged in {time.time()-start0:.2f}s, AvlMem: {avlb_mem:.2f} GB\n\n")
   # Delete DIIS files
@@ -474,27 +490,11 @@ def tau_tildeEq(Nkp,t1,t2):
 ##########################################################################
 # tau intermediate for CCSD T equations
 ##########################################################################
-def tauEq(Nkp,t1,t2):
-  tau = np.copy(t2)
-  tau += np.einsum('ia,jb->ijab',t1,t1,optimize=True)*Nkp
+def tauEq(Nkp,t1,t2,Method):
+  tau = np.einsum('ia,jb->ijab',t1,t1,optimize=True)*Nkp
   tau -= np.einsum('ib,ja->ijab',t1,t1,optimize=True)*Nkp
+  if(Method == "CCSD"): tau += np.copy(t2)
   return tau
-
-# ##########################################################################
-# # tau_tilde intermediate for CCSD T equations with explicit loops over
-# # k points
-# ##########################################################################
-# def tau_tildeEq3k(Nkp,t1,t2):
-#   tau_tilde = np.copy(t2)
-#   # tau_tilde += 0.5*np.einsum('kia,njb->knkijab',t1,t1,optimize=True)*Nkp
-#   # tau_tilde -= 0.5*np.einsum('kib,nja->knnijab',t1,t1,optimize=True)*Nkp
-#   for ki in range(Nkp):      #k_i
-#     for kj in range(Nkp):    #k_j
-#       tau_tilde[ki,kj,ki,:,:,:,:] += 0.5*np.einsum('ia,jb->ijab',t1[ki,:,:],
-#                                                    t1[kj,:,:],optimize=True)*Nkp
-#       tau_tilde[ki,kj,kj,:,:,:,:] -= 0.5*np.einsum('ib,ja->ijab',t1[ki,:,:],
-#                                                    t1[kj,:,:],optimize=True)*Nkp
-#   return tau_tilde
 
 ##########################################################################
 # tau_tilde intermediate for CCSD T equations with explicit loops over
@@ -502,49 +502,31 @@ def tauEq(Nkp,t1,t2):
 ##########################################################################
 def tau_tildeEq3k(Nkp,t1,t2):
   tau_tilde = np.copy(t2)
-  # tau_tilde += 0.5*np.einsum('kia,njb->knkijab',t1,t1,optimize=True)*Nkp
-  # tau_tilde -= 0.5*np.einsum('kib,nja->knnijab',t1,t1,optimize=True)*Nkp
-  for ki in range(Nkp):
-    t1I = t1[ki]
-    tau_tilde[ki,:,ki] += 0.5*np.einsum('ia,kjb->kijab',t1I,t1,
-                                        optimize=True)*Nkp
-    tau_tilde[:,ki,ki] -= 0.5*np.einsum('kib,ja->kijab',t1,t1I,
-                                        optimize=True)*Nkp
+  for I in range(Nkp):
+    t1I = t1[I]
+    tau_tilde[I,:,I] += 0.5*np.einsum('ia,Jjb->Jijab',t1I,t1,
+                                      optimize=True)*Nkp
+    tau_tilde[:,I,I] -= 0.5*np.einsum('Jib,ja->Jijab',t1,t1I,
+                                      optimize=True)*Nkp
   return tau_tilde
-
-# ##########################################################################
-# # tau intermediate for CCSD T equations with explicit loops over k points
-# ##########################################################################
-# def tauEq3k(Nkp, t1, t2):
-#   tau = np.copy(t2)
-#   # tau += np.einsum('kia,njb->knkijab',t1,t1,optimize=True)*Nkp
-#   # tau -= np.einsum('kib,nja->knnijab',t1,t1,optimize=True)*Nkp
-#   for ki in range(Nkp):      #k_i
-#     for kj in range(Nkp):    #k_j
-#       tau[ki,kj,ki,:,:,:,:] += np.einsum('ia,jb->ijab',t1[ki,:,:],
-#                                          t1[kj,:,:],optimize=True)*Nkp
-#       tau[ki,kj,kj,:,:,:,:] -= np.einsum('ib,ja->ijab',t1[ki,:,:],
-#                                          t1[kj,:,:],optimize=True)*Nkp
-#   return tau
 
 ##########################################################################
 # tau intermediate for CCSD T equations with explicit loops over k points
 ##########################################################################
-def tauEq3k(Nkp, t1, t2):
-  tau = np.copy(t2)
-  # tau += np.einsum('kia,njb->knkijab',t1,t1,optimize=True)*Nkp
-  # tau -= np.einsum('kib,nja->knnijab',t1,t1,optimize=True)*Nkp
-  for ki in range(Nkp):      #k_i
-    t1I = t1[ki]
-    tau[ki,:,ki] += np.einsum('ia,kjb->kijab',t1I,t1,optimize=True)*Nkp
-    tau[:,ki,ki] -= np.einsum('kib,ja->kijab',t1,t1I,optimize=True)*Nkp
+def tauEq3k(Nkp, t1, t2, Method):
+  tau = np.zeros(t2.shape,dtype=t2.dtype)
+  for I in range(Nkp):      #k_i
+    t1I = t1[I]
+    tau[I,:,I] += np.einsum('ia,Jjb->Jijab',t1I,t1,optimize=True)*Nkp
+    tau[:,I,I] -= np.einsum('Jib,ja->Jijab',t1,t1I,optimize=True)*Nkp
+  if(Method == "CCSD"): tau += np.copy(t2)
   return tau
 
 ##########################################################################
 # F and W intermediates for CCSD T equations
 ##########################################################################
 # def T_interm(T,O,V,Nkp,Fock,t1,t2,IJKL,IABC,IJAB,IABJ,IJKA,tau_tilde,tau):
-def T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau):
+def T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau,Method):
   # O,V are assumed to be multiplied by Nkp in a PBC calculation
   O2=2*O
   V2=2*V
@@ -555,7 +537,7 @@ def T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau):
   IJKL = np.load(f"{scratch}/{mol_out}-IJKL.npy",mmap_mode='r')
   IJKA = np.load(f"{scratch}/{mol_out}-IJKA.npy",mmap_mode='r')
   W_mnij = np.load(f"{scratch}/{mol_out}-Wmnij.npy",mmap_mode='r+')
-  W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r+')
+  if(Method == "CCSD"): W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r+')
   # if T==1:
   # F_ae
   st_time = time.time()
@@ -584,35 +566,58 @@ def T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau):
   W_mnij[:,:,:,:] = np.copy(IJKL)
   W_mnij += np.einsum('je,mnie->mnij', t1, IJKA, optimize=True)
   W_mnij -= np.einsum('ie,mnje->mnij', t1, IJKA, optimize=True)
-  tot_mem, avlb_mem = mem_check()
-  o4gb = np.size(W_mnij)*8/(1024**3)
-  if(W_mnij.dtype == complex): o4gb *= 2
-  if(avlb_mem < 2*o4gb):
-    lenm = W_mnij.shape[0]
-    for m in range(lenm):
-      W_mnij[m,:,:,:] += 0.5*np.einsum('nef,ijef->nij',IJAB[m,:,:,:],
-                                       tau,optimize=True)/Nkp 
-  else:
-    W_mnij += 0.5 * np.einsum('mnef,ijef->mnij', IJAB, tau, optimize=True)/Nkp
-  # W_mbej
-  W_mbej[:,:,:,:] = np.copy(IABJ)
-  W_mbej += np.einsum('jf,mbef->mbej', t1, IABC, optimize=True)
-  W_mbej += np.einsum('nb,mnje->mbej', t1, IJKA, optimize=True)
-  W_mbej -= 0.5 * np.einsum('jnfb,mnef->mbej', t2, IJAB, optimize=True)/Nkp
-  W_mbej -= np.einsum('jf,nb,mnef->mbej', t1, t1, IJAB, optimize=True)/Nkp
+  # F Intermediates for T2 that are only computed during CC2
+  F_ae2 = 0 
+  F_mi2 = 0
+  F_me2 = 0
+  if(Method == "CCSD"):
+    tot_mem, avlb_mem = mem_check()
+    o4gb = np.size(W_mnij)*8/(1024**3)
+    if(W_mnij.dtype == complex): o4gb *= 2
+    if(avlb_mem < 2*o4gb):
+      lenm = W_mnij.shape[0]
+      for m in range(lenm):
+        W_mnij[m,:,:,:] += 0.5*np.einsum('nef,ijef->nij',IJAB[m,:,:,:],
+                                         tau,optimize=True)/Nkp 
+    else:
+      W_mnij += 0.5 * np.einsum('mnef,ijef->mnij', IJAB, tau, optimize=True)/Nkp
+    # W_mbej
+    W_mbej[:,:,:,:] = np.copy(IABJ)
+    W_mbej += np.einsum('jf,mbef->mbej', t1, IABC, optimize=True)
+    W_mbej += np.einsum('nb,mnje->mbej', t1, IJKA, optimize=True)
+    W_mbej -= 0.5 * np.einsum('jnfb,mnef->mbej', t2, IJAB, optimize=True)/Nkp
+    W_mbej -= np.einsum('jf,nb,mnef->mbej', t1, t1, IJAB, optimize=True)/Nkp
+    prod = np.einsum('ijkl,ijkl',W_mbej,W_mbej,optimize=True)/Nkp**3
+    print(f"Wmbej = {prod}")
+    del W_mbej
+  elif(Method == "CC2"):
+    X1 = np.einsum('jf,mnef->mnej',t1,IJAB,optimize=True)
+    W_mnij += 0.5 * np.einsum('ie,mnej->mnij',t1,X1,optimize=True)/Nkp
+    X1 = np.einsum('je,mnef->mnjf',t1,IJAB,optimize=True)
+    W_mnij -= 0.5 * np.einsum('if,mnjf->mnij',t1,X1,optimize=True)/Nkp
+    del X1
+    # F_ae (t2)
+    F_ae2 = np.zeros((V2,V2),dtype=Fock.dtype)
+    F_ae2 += (1 - np.eye(V2)) * Fock[O2:,O2:]
+    F_ae2 -= 0.5 * np.einsum('me,ma->ae', Fock[:O2,O2:],t1,optimize=True)
+    # F_mi (t2)
+    F_mi2 = np.zeros((O2,O2),dtype=Fock.dtype)
+    F_mi2 += (1 - np.eye(O2)) * Fock[:O2,:O2]
+    F_mi2 += 0.5 * np.einsum('ie,me->mi',t1,Fock[:O2,O2:],optimize=True)
+    # F_me (t2)
+    F_me2 = np.zeros((O2,V2),dtype=Fock.dtype)
+    F_me2 = np.copy(Fock[:O2,O2:])
   prod = np.einsum('ijkl,ijkl',W_mnij,W_mnij,optimize=True)/Nkp**3
   print(f"Wmnij = {prod}")
-  prod = np.einsum('ijkl,ijkl',W_mbej,W_mbej,optimize=True)/Nkp**3
-  print(f"Wmbej = {prod}")
-  del IABC, IJAB, IABJ, IJKL, IJKA, W_mnij, W_mbej
-  return F_ae, F_mi, F_me
+  del IABC, IJAB, IABJ, IJKL, IJKA, W_mnij
+  return F_ae, F_mi, F_me, F_ae2, F_mi2, F_me2
   # return F_ae, F_mi, F_me, W_mnij, W_mbej
 
 ##########################################################################
 # F and W intermediates for CCSD T equations with explicit loops over
 # k points
 ##########################################################################
-def T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,t1,t2,tau_tilde,tau):
+def T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,t1,t2,tau_tilde,tau,Method):
   O2=2*O
   V2=2*V
   NkpS = Nkp*Nkp
@@ -622,7 +627,7 @@ def T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,t1,t2,tau_tilde,tau):
   IJKL = np.load(f"{scratch}/{mol_out}-IJKL.npy",mmap_mode='r')
   IJKA = np.load(f"{scratch}/{mol_out}-IJKA.npy",mmap_mode='r')
   W_mnij = np.load(f"{scratch}/{mol_out}-Wmnij.npy",mmap_mode='r+')
-  W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r+')
+  if(Method == "CCSD"): W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r+')
   # if T==1:
   # F_ae
   st_time = time.time()
@@ -647,48 +652,76 @@ def T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,t1,t2,tau_tilde,tau):
   F_me += np.einsum('knf,lklmnef->lme',t1,IJAB, optimize=True)/Nkp
   prod = np.einsum('lae,lae',F_me,F_me,optimize=True)/Nkp
   print(f"Fme = {prod}")
-  W_mnij[:,:,:,:,:,:,:] = np.copy(IJKL)
-  W_mbej[:,:,:,:,:,:,:] = np.copy(IABJ)
-  #
-  KJ = Ktable
-  X1 = t1[KJ]
-  W_mnij += np.einsum('hklje,hklmnie->hklmnij',X1,IJKA,optimize=True)
-  X2 = np.einsum('hklie,hklmnje->hklmnji',X1,IJKA,optimize=True)
-  W_mnij -= transpose_l(X2,Ktable,'k')
-  del X2
-  #
-  W_mbej += np.einsum('hkljf,hklmbef->hklmbej',X1,IABC,optimize=True)
-  X2 = transpose_l(IJKA,Ktable,'k')
-  W_mbej += np.einsum('knb,hklmnej->hklmbej',t1,X2,optimize=True)
-  del X2
-  X2 = np.einsum('hkljf,hklmnef->hklmnej',X1,IJAB,optimize=True)
-  W_mbej -= np.einsum('knb,hklmnej->hklmbej',t1,X2,optimize=True)/Nkp
-  del X1,X2
-  #
-  ar = np.arange(Nkp)
-  idx_ki = ar.reshape(1, Nkp)
-  KJJ = Ktable
-  for km in range(Nkp):
-    KJ = Ktable[km]
-    IJABM = IJAB[km]
-    tauM = tau[idx_ki,KJ]
-    W_mnij[km] += 0.5*np.einsum('hkmnef,hlkijef->hlmnij',IJABM,tauM,
-                              optimize=True)/Nkp
-    del IJABM, tauM, KJ
+  # F Intermediates for T2 that are only computed during CC2
+  F_ae2 = 0 
+  F_mi2 = 0
+  F_me2 = 0
+  if(Method == "CCSD"):
+    W_mnij[:,:,:,:,:,:,:] = np.copy(IJKL)
+    W_mbej[:,:,:,:,:,:,:] = np.copy(IABJ)
     #
-    kn = km
-    KF = Ktable[:,kn,:]
-    t2NF = t2[:,kn,:][KJJ,KF[:,None,:]]
-    IJABN = IJAB[:,kn,:]
-    W_mbej -= 0.5*np.einsum('hkljnfb,hlmnef->hklmbej',t2NF,IJABN,
-                            optimize=True)/Nkp
-    del t2NF,KF,IJABN
+    X1 = t1[Ktable]
+    W_mnij += np.einsum('MNIje,MNImnie->MNImnij',X1,IJKA,optimize=True)
+    X2 = np.einsum('MNJie,MNJmnje->MNJmnji',X1,IJKA,optimize=True)
+    W_mnij -= transpose_l(X2,Ktable,'k')
+    del X2
+    #
+    W_mbej += np.einsum('hkljf,hklmbef->hklmbej',X1,IABC,optimize=True)
+    X2 = transpose_l(IJKA,Ktable,'k')
+    W_mbej += np.einsum('knb,hklmnej->hklmbej',t1,X2,optimize=True)
+    del X2
+    X2 = np.einsum('hkljf,hklmnef->hklmnej',X1,IJAB,optimize=True)
+    W_mbej -= np.einsum('knb,hklmnej->hklmbej',t1,X2,optimize=True)/Nkp
+    del X1,X2
+    #
+    ar = np.arange(Nkp)
+    idx_ki = ar.reshape(1, Nkp)
+    KJJ = Ktable
+    for km in range(Nkp):
+      KJ = Ktable[km]
+      IJABM = IJAB[km]
+      tauM = tau[idx_ki,KJ]
+      W_mnij[km] += 0.5*np.einsum('hkmnef,hlkijef->hlmnij',IJABM,tauM,
+                                  optimize=True)/Nkp
+      del IJABM, tauM, KJ
+      #
+      kn = km
+      KF = Ktable[:,kn,:]
+      t2NF = t2[:,kn,:][KJJ,KF[:,None,:]]
+      IJABN = IJAB[:,kn,:]
+      W_mbej -= 0.5*np.einsum('hkljnfb,hlmnef->hklmbej',t2NF,IJABN,
+                              optimize=True)/Nkp
+      del t2NF,KF,IJABN
+    prod = np.einsum('ijklmnq,ijklmnq',W_mbej,W_mbej,optimize=True)/Nkp**3
+    print(f"Wmbej = {prod}")
+    del W_mbej
+  elif(Method == "CC2"):
+    W_mnij[:,:,:,:,:,:,:] = np.copy(IJKL)
+    X1 = t1[Ktable]
+    W_mnij += np.einsum('MNIje,MNImnie->MNImnij',X1,IJKA,optimize=True)
+    X2 = np.einsum('MNJie,MNJmnje->MNJmnji',X1,IJKA,optimize=True)
+    W_mnij -= transpose_l(X2,Ktable,'k')
+    del X2
+    X2 = np.einsum('MNIjf,MNImnef->MNImnej',X1,IJAB,optimize=True)
+    W_mnij += 0.5 * np.einsum('Iie,MNImnej->MNImnij',t1,X2,optimize=True)/Nkp
+    X2 = np.einsum('Jje,MNJmnef->MNJmnjf',t1,IJAB,optimize=True)
+    X3 = 0.5 * np.einsum('MNJif,MNJmnjf->MNJmnji',X1,X2,optimize=True)/Nkp 
+    W_mnij -= transpose_l(X3,Ktable,'k')
+    del X1, X2, X3
+    F_ae2 = np.zeros((Nkp,V2,V2),dtype=Fock.dtype)
+    F_ae2 += (1 - np.eye(V2)) * Fock[:,O2:, O2:] 
+    F_ae2 -= 0.5 * np.einsum('Ame,Ama->Aae', Fock[:,:O2, O2:],t1,optimize=True)
+    # F_mi
+    F_mi2 = np.zeros((Nkp,O2,O2),dtype=Fock.dtype)
+    F_mi2 += (1 - np.eye(O2)) * Fock[:,:O2, :O2]
+    F_mi2 += 0.5 * np.einsum('Mie,Mme->Mmi',t1,Fock[:,:O2,O2:],optimize=True)
+    # F_me
+    F_me2 = np.zeros((Nkp,O2,V2),dtype=Fock.dtype)
+    F_me2 = np.copy(Fock[:,:O2,O2:])
   prod = np.einsum('ijklmnq,ijklmnq',W_mnij,W_mnij,optimize=True)/Nkp**3
   print(f"Wmnij = {prod}")
-  prod = np.einsum('ijklmnq,ijklmnq',W_mbej,W_mbej,optimize=True)/Nkp**3
-  print(f"Wmbej = {prod}")
-  del IABC, IJAB, IABJ, IJKL, IJKA, W_mnij, W_mbej
-  return F_ae, F_mi, F_me
+  del IABC, IJAB, IABJ, IJKL, IJKA, W_mnij
+  return F_ae, F_mi, F_me, F_ae2, F_mi2, F_me2
   # return F_ae, F_mi, F_me, W_mnij, W_mbej
 
 #########################################################################
@@ -733,70 +766,89 @@ def t1Eq3k(mol_out,scratch,O,V,Nkp,Fock,t1,t2,F_ae,F_mi,F_me,D1):
 #########################################################################
 # CCSD T2 amplitude equation
 #########################################################################
-def t2Eq(T,mol_out,scratch,Nkp,t1,t2,tau,F_ae,
-         F_mi,F_me,D2):
-  IABC = np.load(f"{scratch}/{mol_out}-IABC.npy",mmap_mode='r')
-  IJAB = np.load(f"{scratch}/{mol_out}-IJAB.npy",mmap_mode='r')
-  IABJ = np.load(f"{scratch}/{mol_out}-IABJ.npy",mmap_mode='r')
-  IJKA = np.load(f"{scratch}/{mol_out}-IJKA.npy",mmap_mode='r')
-  W_mnij = np.load(f"{scratch}/{mol_out}-Wmnij.npy",mmap_mode='r')
-  W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r')
-  if T==1:
-    NkpS = Nkp*Nkp
-    # Constant term
-    t2_f = np.copy(np.conjugate(IJAB))
-    del IJAB
-    # P(ab) terms
-    X1 = F_ae - 0.5*np.einsum('mb,me->be',t1,F_me,optimize=True)
-    X2 = np.einsum('ijae,be->ijab',t2,X1,optimize=True)
-    X2 -= np.einsum('ma,ijmb->ijab',t1,np.conjugate(IJKA),optimize=True)
-    t2_f += X2 - np.transpose(X2,axes=(0,1,3,2))
-    del X1, X2, IJKA
-    # P(ij) terms
-    X1 = F_mi + 0.5*np.einsum('je,me->mj',t1,F_me,optimize=True)
-    X2 = -np.einsum('imab,mj->ijab',t2,X1,optimize=True)
-    X2 -= np.einsum('ie,jeab->ijab',t1,np.conjugate(IABC),optimize=True)
-    t2_f += X2 - np.transpose(X2,axes=(1,0,2,3))
-    del X1, X2
-    # P(ij,ab) terms
-    X1 = -np.einsum('ie,mbej->mbij',t1,IABJ,optimize=True)
-    del IABJ
-    X2 = np.einsum('imae,mbej->ijab',t2,W_mbej,optimize=True)/Nkp
-    X2 += np.einsum('ma,mbij->ijab',t1,X1,optimize=True)
-    t2_f += X2 - np.transpose(X2,axes=(1,0,2,3))
-    t2_f -= np.transpose(X2,axes=(0,1,3,2))
-    t2_f += np.transpose(X2,axes=(1,0,3,2))
-    del X1, X2, W_mbej
-    # tau terms
-    if(f"{scratch}/{mol_out}-ABCD.npy"):
-      X1 = np.load(f"{scratch}/{mol_out}-ABCD.npy",mmap_mode='r')
-      t2_f += 0.5*np.einsum('ijef,abef->ijab',tau,X1,optimize=True)/Nkp
-      del X1
-    else:
-      print(f"ABCD integrals file is missing in t2Eq\n")
-      exit()
-    t2_f += 0.5*np.einsum('mnab,mnij->ijab',tau,W_mnij,optimize=True)/Nkp
-    del W_mnij
-    # Add o3v3 work to avoid storing v4 intermediate (it also saves on
-    # permutation work)
-    X1 = np.einsum('ijef,mbef->ijmb',tau,IABC,optimize=True)/Nkp
-    X2 = -0.5*np.einsum('ma,ijmb->ijab',t1,X1,optimize=True)
-    t2_f += X2 - np.transpose(X2,axes=(0,1,3,2))
-    del X1, X2, IABC
-    t2_f /= D2    
-  return t2_f
-
-#########################################################################
-# CCSD T2 amplitude equation with explicit loops over k points
-#########################################################################
-def t2Eq3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me,D2):
+def t2Eq(mol_out,scratch,Nkp,t1,t2,tau,F_ae,F_mi,F_me,D2,Method):
   IABC = np.load(f"{scratch}/{mol_out}-IABC.npy",mmap_mode='r')
   IJAB = np.load(f"{scratch}/{mol_out}-IJAB.npy",mmap_mode='r')
   IABJ = np.load(f"{scratch}/{mol_out}-IABJ.npy",mmap_mode='r')
   IJKA = np.load(f"{scratch}/{mol_out}-IJKA.npy",mmap_mode='r')
   ABCD = np.load(f"{scratch}/{mol_out}-ABCD.npy",mmap_mode='r')
   W_mnij = np.load(f"{scratch}/{mol_out}-Wmnij.npy",mmap_mode='r')
-  W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r')
+  if Method == "CCSD":
+    W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r')
+  NkpS = Nkp*Nkp
+  # Constant term
+  t2_f = np.copy(np.conjugate(IJAB))
+  del IJAB
+  # P(ab) terms
+  X1 = F_ae - 0.5*np.einsum('mb,me->be',t1,F_me,optimize=True)
+  X2 = np.einsum('ijae,be->ijab',t2,X1,optimize=True)
+  X2 -= np.einsum('ma,ijmb->ijab',t1,np.conjugate(IJKA),optimize=True)
+  t2_f += X2 - np.transpose(X2,axes=(0,1,3,2))
+  del X1, X2, IJKA
+  # P(ij) terms
+  X1 = F_mi + 0.5*np.einsum('je,me->mj',t1,F_me,optimize=True)
+  X2 = -np.einsum('imab,mj->ijab',t2,X1,optimize=True)
+  X2 -= np.einsum('ie,jeab->ijab',t1,np.conjugate(IABC),optimize=True)
+  t2_f += X2 - np.transpose(X2,axes=(1,0,2,3))
+  del X1, X2
+  # P(ij,ab) terms
+  X1 = -np.einsum('ie,mbej->mbij',t1,IABJ,optimize=True)
+  del IABJ
+  X2 = np.einsum('ma,mbij->ijab',t1,X1,optimize=True)
+  if Method == "CCSD":
+    X2 += np.einsum('imae,mbej->ijab',t2,W_mbej,optimize=True)/Nkp
+    del W_mbej
+  t2_f += X2 - np.transpose(X2,axes=(1,0,2,3))
+  t2_f -= np.transpose(X2,axes=(0,1,3,2))
+  t2_f += np.transpose(X2,axes=(1,0,3,2))
+  del X1, X2
+  # tau terms
+  if Method == "CCSD":
+    t2_f += 0.5*np.einsum('ijef,abef->ijab',tau,ABCD,optimize=True)/Nkp
+  elif Method == "CC2":
+    X1 = np.einsum('jf,abef->abej',t1,ABCD,optimize=True)
+    t2_f += 0.5 * np.einsum('ie,abej->ijab',t1,X1,optimize=True)/Nkp
+    X1 = np.einsum('je,abef->abjf',t1,ABCD,optimize=True)
+    t2_f -= 0.5 * np.einsum('if,abjf->ijab',t1,X1,optimize=True)/Nkp
+    del X1
+  del ABCD
+  if Method == "CCSD":
+    t2_f += 0.5*np.einsum('mnab,mnij->ijab',tau,W_mnij,optimize=True)/Nkp
+  elif Method == "CC2":
+    X1 = np.einsum('nb,mnij->mbij',t1,W_mnij,optimize=True)
+    t2_f += 0.5 * np.einsum('ma,mbij->ijab',t1,X1,optimize=True)/Nkp
+    X1 = np.einsum('na,mnij->maij',t1,W_mnij,optimize=True)
+    t2_f -= 0.5 * np.einsum('mb,maij->ijab',t1,X1,optimize=True)/Nkp
+    del X1
+  del W_mnij
+  # Add o3v3 work to avoid storing v4 intermediate (it also saves on
+  # permutation work)
+  if Method == "CCSD":
+    X1 = np.einsum('ijef,mbef->ijmb',tau,IABC,optimize=True)/Nkp
+  elif Method == "CC2":
+    X0 = np.einsum('jf,mbef->mbej',t1,IABC,optimize=True)
+    X1 = np.einsum('ie,mbej->ijmb',t1,X0,optimize=True)/Nkp
+    X0 = np.einsum('je,mbef->mbjf',t1,IABC,optimize=True)
+    X1 -= np.einsum('if,mbjf->ijmb',t1,X0,optimize=True)/Nkp
+    del X0
+  X2 = -0.5*np.einsum('ma,ijmb->ijab',t1,X1,optimize=True)
+  t2_f += X2 - np.transpose(X2,axes=(0,1,3,2))
+  del X1, X2, IABC
+  t2_f /= D2    
+  return t2_f
+
+#########################################################################
+# CCSD T2 amplitude equation with explicit loops over k points
+#########################################################################
+def t2Eq3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me,D2,Method):
+  IABC = np.load(f"{scratch}/{mol_out}-IABC.npy",mmap_mode='r')
+  IJAB = np.load(f"{scratch}/{mol_out}-IJAB.npy",mmap_mode='r')
+  IABJ = np.load(f"{scratch}/{mol_out}-IABJ.npy",mmap_mode='r')
+  IJKA = np.load(f"{scratch}/{mol_out}-IJKA.npy",mmap_mode='r')
+  ABCD = np.load(f"{scratch}/{mol_out}-ABCD.npy",mmap_mode='r')
+  W_mnij = np.load(f"{scratch}/{mol_out}-Wmnij.npy",mmap_mode='r')
+  if Method == "CCSD":
+    W_mbej = np.load(f"{scratch}/{mol_out}-Wmbej.npy",mmap_mode='r')
   NkpS = Nkp*Nkp
   # Constant term
   t2_f = np.copy(np.conjugate(IJAB))
@@ -818,49 +870,87 @@ def t2Eq3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me,D2):
   t2_f += X2 - transpose_l(X2,Ktable,'k')
   del X2
   #
-  # Unavoidable loop over k point
-  ar = np.arange(Nkp)
-  idx_ki = ar.reshape(Nkp, 1)
-  idx_ka = ar.reshape(1, Nkp)
-  X2 = np.zeros(t2_f.shape, dtype=t2_f.dtype)
-  X3 = np.zeros(t2_f.shape, dtype=t2_f.dtype)
-  KB = Ktable
-  for M in range(Nkp):
-    # W_mnij
-    N = Ktable[:,:,M]
-    tauN = tau[M][N]
-    WN = W_mnij[M][N,idx_ki]
-    # print(f"M:{M}, {N.shape}, {tauN.shape}, {WN.shape}, {t2_f.shape}\n {N}\n")
-    t2_f += 0.5*np.einsum('IJmnij,IJAmnab->IJAijab',WN,tauN,optimize=True)/Nkp
-    del N,tauN,WN
-    # ABCD
-    I = M 
-    B = Ktable[I]
-    tauI = tau[I]
-    ABCDI = ABCD[idx_ka,B]  
-    t2_f[I] += 0.5*np.einsum('JEijef,JAEabef->JAijab',tauI,ABCDI,
-                              optimize=True)/Nkp
-    del ABCDI
-    IABCI = IABC[idx_ka,B]  
-    X1 = np.einsum('JEijef,JAEmbef->JAijmb',tauI,IABCI,
-                   optimize=True)/Nkp
-    X2[I] -= 0.5*np.einsum('Ama,JAijmb->JAijab',t1,X1,optimize=True)
-    del X1,B,tauI,IABCI
-    # W_mbej
-    E = Ktable[:,M,:]
-    IDX_E = E[:,None,:]
-    WE = W_mbej[M][KB,IDX_E]
-    t2E = t2[:,M,:]
-    X3 += np.einsum('IAimae,IJAmbej->IJAijab',t2E,WE,optimize=True)/Nkp
-  t2_f += X2 
-  t2_f -= transpose_l(X2,Ktable,'k')
-  del ar,idx_ki,idx_ka,X2,KB
   # P(ij,ab) terms
   IABJt = transpose_l(IABJ,Ktable,'j')
   X1 = -np.einsum('Iie,AJImjeb->IJAijmb',t1,IABJt,optimize=True)
-  del IABJt
-  X3 += np.einsum('Ama,IJAijmb->IJAijab',t1,X1,optimize=True)
-  del X1
+  X3 = np.einsum('Ama,IJAijmb->IJAijab',t1,X1,optimize=True)
+  del X1, IABJt
+  #
+  if Method == "CCSD":
+    # Unavoidable loop over k point
+    ar = np.arange(Nkp)
+    idx_ki = ar.reshape(Nkp, 1)
+    idx_ka = ar.reshape(1, Nkp)
+    X2 = np.zeros(t2_f.shape, dtype=t2_f.dtype)
+    KB = Ktable
+    for M in range(Nkp):
+      # W_mnij
+      N = Ktable[:,:,M] # N[I,J]
+      tauN = tau[M][N]
+      WN = W_mnij[M][N,idx_ki]
+      # print(f"M:{M}, {N.shape}, {tauN.shape}, {WN.shape}, {t2_f.shape}\n {N}\n")
+      t2_f += 0.5*np.einsum('IJmnij,IJAmnab->IJAijab',WN,tauN,optimize=True)/Nkp
+      del N,tauN,WN
+      # ABCD
+      I = M 
+      B = Ktable[I]
+      tauI = tau[I]
+      ABCDI = ABCD[idx_ka,B]  
+      t2_f[I] += 0.5*np.einsum('JEijef,JAEabef->JAijab',tauI,ABCDI,
+                               optimize=True)/Nkp
+      del ABCDI
+      # IABC
+      IABCI = IABC[idx_ka,B]  
+      X1 = np.einsum('JEijef,JAEmbef->JAijmb',tauI,IABCI,
+                     optimize=True)/Nkp
+      X2[I] -= 0.5*np.einsum('Ama,JAijmb->JAijab',t1,X1,optimize=True)
+      del X1,B,tauI,IABCI
+      # W_mbej
+      E = Ktable[:,M,:]
+      IDX_E = E[:,None,:]
+      WE = W_mbej[M][KB,IDX_E]
+      t2E = t2[:,M,:]
+      X3 += np.einsum('IAimae,IJAmbej->IJAijab',t2E,WE,
+                      optimize=True)/Nkp
+    t2_f += X2 
+    t2_f -= transpose_l(X2,Ktable,'k')
+    del ar,idx_ki,idx_ka,X2,KB
+  elif Method == "CC2":
+    # ABCD
+    t1k = t1[Ktable]
+    X1 = np.einsum('ABIjf,ABIabef->ABIabej',t1k,ABCD,optimize=True)
+    X2 = 0.5 * np.einsum('Iie,ABIabej->ABIabij',t1,X1,
+                            optimize=True)/Nkp
+    X1 = np.einsum('Jje,ABJabef->ABJabjf',t1,ABCD,optimize=True)
+    X0 = -0.5 * np.einsum('ABJif,ABJabjf->ABJabji',t1k,X1,
+                            optimize=True)/Nkp
+    X2 += transpose_l(X0,Ktable,'k')
+    del X0, X1
+    t2_f += np.transpose(transpose_l(X2,Ktable,'j'),axes=(2,1,0,5,4,3,6))
+    del X2
+    # W_mnij
+    X1 = np.einsum('Bnb,MBImnij->MBImbij',t1,W_mnij,optimize=True)
+    X2 = 0.5 * np.einsum('Ama,ABImbij->ABIabij',t1,X1,optimize=True)/Nkp
+    X1 = np.einsum('Ana,MAImnij->MAImaij',t1,W_mnij,optimize=True)
+    X0 = -0.5 * np.einsum('Bmb,BAImaij->BAIbaij',t1,X1,optimize=True)/Nkp
+    X2 += np.transpose(X0,axes=(1,0,2,4,3,5,6))
+    del X0, X1
+    t2_f += np.transpose(transpose_l(X2,Ktable,'j'),axes=(2,1,0,5,4,3,6))
+    del X2
+    # IABC
+    X0 = np.einsum('MBEjf,MBEmbef->MBEmbej',t1k,IABC,optimize=True)
+    X1 = np.einsum('Iie,MBImbej->MBImbij',t1,X0,optimize=True)/Nkp
+    X0 = np.einsum('Jje,MBJmbef->MBJmbjf',t1,IABC,optimize=True)
+    X2 = -np.einsum('MBJif,MBJmbjf->MBJmbji',t1k,X0,optimize=True)/Nkp
+    X1 += transpose_l(X2,Ktable,'k')
+    del X0, X2
+    X2 = -0.5*np.einsum('Ama,ABImbij->ABIabij',t1,X1,optimize=True)
+    X1 = np.transpose(transpose_l(X2,Ktable,'j'),axes=(2,1,0,5,4,3,6))
+    t2_f += X1 - transpose_l(X1,Ktable,'k')
+    del t1k, X1, X2
+  del IABC, ABCD, W_mnij
+  #  
+  # Final P(ij,ab) permutation
   t2_f += X3 
   t2_f -= np.transpose(X3,axes=(1,0,2,4,3,5,6))
   t2_f -= transpose_l(X3,Ktable,'k')
