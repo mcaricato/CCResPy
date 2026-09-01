@@ -65,7 +65,7 @@ O, V, FC, FV, NB, scfE, MOCoef_Tot, ipbc, k_weights, atoms_list = getFort(mol_in
 #
 Ktable = []
 if(ipbc):
-  print(f"iPBC: {len(ipbc)}\n {ipbc}")
+  # print(f"iPBC: {len(ipbc)}\n {ipbc}")
   npdir = ipbc[0]
   nmtpbc = ipbc[1]
   nrecip = ipbc[9]
@@ -78,17 +78,17 @@ if(ipbc):
   # 
   # Nkp = 1
   # for n in range(npdir): Nkp *= ndimk[n]
-  # kp, l_list = fill_kl(ipbc)
+  # Nkp, kp, l_list = fill_kl(ipbc)
   # co = np.einsum('k,l', kp, l_list, optimize=True)
   # cof = np.cos(co) + 1j*np.sin(co)
   # print(f"kp: {kp}\n")
-  # print(f"l_list: {l_list}\n")
+  # print(f"NMtPBC: {nmtpbc} l_list: {l_list}\n")
   # print(f"CO: {co}\n")
   # print(f"COF: {cof}\n")
   # exit()
   # Nkp = len(kp)
   sumtv = sum(np.array(tv))
-  print(f"sumtv= {sumtv}, max = {max(abs(sumtv))} \n TV: {tv}")
+  # print(f"sumtv= {sumtv}, max = {max(abs(sumtv))} \n TV: {tv}")
   if(max(abs(sumtv)) == 0.0):
     with open(f"{mol_out}.txt","a") as writer:
       writer.write(f"The translation vector is empty.\n")
@@ -149,43 +149,56 @@ with open(f"{mol_out}.txt","a") as writer:
 O2 = O*2
 V2 = V*2
 NOrb2 = O2 + V2
-if(ipbc and Kstore == "compress"):
-  print(f"Fock: {Fock.shape}, {np.size(Fock)}\n ")
-  for kk in range(Nkp):
-    FockD = np.diag(Fock[kk,:,:].real)
-    print(f"{FockD}")
-  Ovl = getOvl1k(mol_inp,O,V,NB,ipbc,"MO",False,0,MOCoef)
-  print(f"Ovl: {Ovl.shape}, {np.size(Ovl)}\n ")
-  for kk in range(Nkp):
-    OvlD = np.diag(Ovl[kk,:,:].real)
-    print(f"{OvlD}")
-else:
-  print(f"Fock: {Fock.shape}, {np.size(Fock)}\n ")
-  FockD = np.diag(Fock.real).reshape((Nkp,NOrb2))
-  print(f"{FockD}")
-  Ovl = getOvl(mol_inp,O,V,NB,ipbc,"MO",False,0,MOCoef)
-  print(f"Ovl: {Ovl.shape}, {np.size(Ovl)}\n ")
-  OvlD = np.diag(Ovl.real).reshape((Nkp,NOrb2))
-  print(f"{OvlD}")
-# ndimk = ipbc[12:15]
-# map_kp = form_map_kp(npdir,ndimk)
-# for n in range(Nkp):
-#   for k in range(Nkp):
-#     for h in range(Nkp):
-#       g = momentum_cons(npdir,ndimk,map_kp,n,k,h)
-#
-# _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
-#                                  Fock,"DipE",mol_inp,
-#                                  mol_out)
-# _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
-#                                  Fock,"DipEV",mol_inp,
-#                                  mol_out)
-# _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
-#                                  Fock,"FullOR_L",mol_inp,
-#                                  mol_out)
-# _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
-#                                  Fock,"FullOR_V",mol_inp,
-#                                  mol_out)
+# if(ipbc and Kstore == "compress"):
+#   print(f"Fock: {Fock.shape}, {np.size(Fock)}\n ")
+#   for kk in range(Nkp):
+#     FockD = np.diag(Fock[kk,:,:].real)
+#     print(f"{FockD}")
+#   Ovl = getOvl1k(mol_inp,O,V,NB,ipbc,"MO",False,0,MOCoef)
+#   print(f"Ovl: {Ovl.shape}, {np.size(Ovl)}\n ")
+#   for kk in range(Nkp):
+#     OvlD = np.diag(Ovl[kk,:,:].real)
+#     print(f"{OvlD}")
+#   print(f"DipE integrals")
+#   _, _, _, _, _, _, _, _ = getPert1k(O,V,NB,ipbc,tv,MOCoef,
+#                                      Fock,"DipE",mol_inp,
+#                                      mol_out)
+#   print(f"DipEV integrals")
+#   _, _, _, _, _, _, _, _ = getPert1k(O,V,NB,ipbc,tv,MOCoef,
+#                                      Fock,"DipEV",mol_inp,
+#                                      mol_out)
+#   print(f"FullOR_L integrals")
+#   _, _, _, _, _, _, _, _ = getPert1k(O,V,NB,ipbc,tv,MOCoef,
+#                                      Fock,"FullOR_L",mol_inp,
+#                                      mol_out)
+#   print(f"FullOR_V integrals")
+#   _, _, _, _, _, _, _, _ = getPert1k(O,V,NB,ipbc,tv,MOCoef,
+#                                      Fock,"FullOR_V",mol_inp,
+#                                      mol_out)
+# else:
+#   print(f"Fock: {Fock.shape}, {np.size(Fock)}\n ")
+#   FockD = np.diag(Fock.real).reshape((Nkp,NOrb2))
+#   print(f"{FockD}")
+#   Ovl = getOvl(mol_inp,O,V,NB,ipbc,"MO",False,0,MOCoef)
+#   print(f"Ovl: {Ovl.shape}, {np.size(Ovl)}\n ")
+#   OvlD = np.diag(Ovl.real).reshape((Nkp,NOrb2))
+#   print(f"{OvlD}")
+#   print(f"DipE integrals")
+#   _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
+#                                    Fock,"DipE",mol_inp,
+#                                    mol_out)
+#   print(f"DipEV integrals")
+#   _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
+#                                    Fock,"DipEV",mol_inp,
+#                                    mol_out)
+#   print(f"FullOR_L integrals")
+#   _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
+#                                    Fock,"FullOR_L",mol_inp,
+#                                    mol_out)
+#   print(f"FullOR_V integrals")
+#   _, _, _, _, _, _, _, _ = getPert(O,V,NB,ipbc,tv,MOCoef,
+#                                    Fock,"FullOR_V",mol_inp,
+#                                    mol_out)
 # exit()
 ##########################################################################  
 # Get AO 2e integrals and transform in MO basis
@@ -424,14 +437,14 @@ for iw in range(len(Wlist)):
       if(ipbc and Kstore == 'compress'):
         rhs1, rhs2 = pert_rhs3k(PertSymm,Nkp,O2,V2,t1,t2,X_ij[ip],X_ia[ip],
                                 X_ab[ip],Ktable)
-        rhs1prod = np.einsum('Iia,Iia->',rhs1,np.conjugate(rhs1),optimize=True)
-        rhs2prod = np.einsum('IJAijab,IJAijab->',rhs2,np.conjugate(rhs2),optimize=True)
+        # rhs1prod = np.einsum('Iia,Iia->',rhs1,np.conjugate(rhs1),optimize=True)
+        # rhs2prod = np.einsum('IJAijab,IJAijab->',rhs2,np.conjugate(rhs2),optimize=True)
       else:
         rhs1, rhs2 = pert_rhs(PertSymm,Nkp,O2k,V2k,t1,t2,X_ij[ip],X_ia[ip],
                               X_ab[ip])
-        rhs1prod = np.einsum('ia,ia->',rhs1,np.conjugate(rhs1),optimize=True)
-        rhs2prod = np.einsum('ijab,ijab->',rhs2,np.conjugate(rhs2),optimize=True)
-      print(f"rhs1: {rhs1prod/Nkp}, rhs2: {rhs2prod/Nkp**3}")
+        # rhs1prod = np.einsum('ia,ia->',rhs1,np.conjugate(rhs1),optimize=True)
+        # rhs2prod = np.einsum('ijab,ijab->',rhs2,np.conjugate(rhs2),optimize=True)
+      # print(f"rhs1: {rhs1prod/Nkp}, rhs2: {rhs2prod/Nkp**3}")
       tot_mem, avlb_mem = mem_check()
       with open(f"{mol_out}.txt","a") as writer:
         writer.write(f"Right hand side evaluated, Time: {time.time()-start:.2f}s, AvlMem: {avlb_mem:.2f}GB\n")
@@ -464,17 +477,17 @@ for iw in range(len(Wlist)):
                                                    Fock,tau,F_ae,F_mi,F_me,rhs1,
                                                    rhs2,D1,D2,t1,t2,t1,t2,ttx1,
                                                    ttx2,ipbc,Kstore,Ktable,Method)
-          tx1prod = np.einsum('Iia,Iia->',ttx1,np.conjugate(ttx1),optimize=True)/Nkp
-          tx2prod = np.einsum('IJAijab,IJAijab->',ttx2,np.conjugate(ttx2),optimize=True)/Nkp**3
+          # tx1prod = np.einsum('Iia,Iia->',ttx1,np.conjugate(ttx1),optimize=True)/Nkp
+          # tx2prod = np.einsum('IJAijab,IJAijab->',ttx2,np.conjugate(ttx2),optimize=True)/Nkp**3
         else:
           ttx1[:,:], ttx2[:,:,:,:] = AmpIt("Tx",mol_out,scratch,Ok,Vk,Nkp,
                                            MaxIt,ThrE,ThrA,scfE,Fock,tau,
                                            F_ae,F_mi,F_me,rhs1,rhs2,D1,D2,
                                            t1,t2,t1,t2,ttx1,ttx2,ipbc,Kstore,
                                            Ktable,Method)
-          tx1prod = np.einsum('ia,ia->',ttx1,np.conjugate(ttx1),optimize=True)/Nkp
-          tx2prod = np.einsum('ijab,ijab->',ttx2,np.conjugate(ttx2),optimize=True)/Nkp**3
-        print(f"tx1: {tx1prod}, tx2: {tx2prod}")
+        #   tx1prod = np.einsum('ia,ia->',ttx1,np.conjugate(ttx1),optimize=True)/Nkp
+        #   tx2prod = np.einsum('ijab,ijab->',ttx2,np.conjugate(ttx2),optimize=True)/Nkp**3
+        # print(f"tx1: {tx1prod}, tx2: {tx2prod}")
         del ttx1, ttx2
       if(NW == 1):
         # This is a static case. Make a copy of the amplitudes for the -W case.
@@ -508,14 +521,14 @@ for iw in range(len(Wlist)):
       if(ipbc and Kstore == 'compress'):
         Xi1, Xi2 = Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,ttx1,ttx2,l1,l2,t1,
                         F_ae,F_mi,F_me,D2)
-        Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-        Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+        # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+        # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
       else:
         Xi1, Xi2 = Xi(1,mol_out,scratch,Nkp,O2k,ttx1,ttx2,l1,l2,t1,
                       F_ae,F_mi,F_me,D2)
-        Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-        Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-      print(f"Xi1: {Xi1prod/Nkp}, Xi2: {Xi2prod/Nkp**3}")
+      #   Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+      #   Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+      # print(f"Xi1: {Xi1prod/Nkp}, Xi2: {Xi2prod/Nkp**3}")
       del ttx1, ttx2, l1, l2
       tot_mem, avlb_mem = mem_check()
       with open(f"{mol_out}.txt","a") as writer:
@@ -764,11 +777,11 @@ for iw in range(len(Wlist)):
         l2 = np.load(f"{scratch}/{mol_out}-l2.npy",mmap_mode='r')
         if(ipbc and Kstore == 'compress'):
           rho1 = TrDen1_1k(O2k,NOrb2k,Nkp,Ktable,ttx1,ttx2,l1,l2,t1,t2)
-          rhoprod = np.einsum('Iia,Iia->',rho1,np.conjugate(rho1),optimize=True)
+          # rhoprod = np.einsum('Iia,Iia->',rho1,np.conjugate(rho1),optimize=True)
         else:
           rho1 = TrDen1(1,O2k,NOrb2k,Nkp,ttx1,ttx2,l1,l2,t1,t2)
-          rhoprod = np.einsum('ia,ia->',rho1,np.conjugate(rho1),optimize=True)
-        print(f"rho1: {rhoprod/Nkp}")
+        #   rhoprod = np.einsum('ia,ia->',rho1,np.conjugate(rho1),optimize=True)
+        # print(f"rho1: {rhoprod/Nkp}")
         del ttx1, ttx2, l1, l2
         tot_mem, avlb_mem = mem_check()
         with open(f"{mol_out}.txt","a") as writer:

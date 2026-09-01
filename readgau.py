@@ -87,7 +87,7 @@ def main():
     # twoeint = baf.matlist["PBC 2E INTEGRALS"]#.array.reshape((nbx,nbx,nbx,nbx))
     ntt = (nb*(nb+1))//2
     occ = [noa,nob,nva,nvb,baf.nfc,baf.nfv]
-    print(f"occ: {occ}, {nae}, {baf.nfc}, {baf.ne}, {baf.multip}")
+    # print(f"occ: {occ}, {nae}, {baf.nfc}, {baf.ne}, {baf.multip}")
     with open(f"{mol}_txts/occ.txt","w") as writer:
       writer.write(str(occ))
     miller_ind = baf.matlist["K-POINT MILLER INDICES"].expand()
@@ -124,9 +124,9 @@ def main():
       elif(npdir == 2):
         posgrid = posgrid[:,:-1]
       np.save(f"{mol}_txts/grid-coord",posgrid)
-      print(f"kgrid int stuff: {kgrid.shape}, {len(kgrid)} \n {kgrid}")
-      print(f"kgrid Orbitals: {len(nkorb)} \n {nkorb}")
-      print(f"kgrid coordinates: {posgrid.shape}, {len(posgrid)} \n {posgrid}")
+      # print(f"kgrid int stuff: {kgrid.shape}, {len(kgrid)} \n {kgrid}")
+      # print(f"kgrid Orbitals: {len(nkorb)} \n {nkorb}")
+      # print(f"kgrid coordinates: {posgrid.shape}, {len(posgrid)} \n {posgrid}")
       # print(f"kgrid real stuff: {kgrid1.shape}, {len(kgrid1)}, {NKPnt}, {NDim} \n {kgrid1[4*NKPnt+1:]}")
       # exit()
   else:

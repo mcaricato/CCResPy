@@ -407,7 +407,7 @@ def getFort(mol_inp,mol_out,FreezeCore):
     if(npdir > 1):
       # Read k point grid over the half FBZ from Gaussian
       posgrid = np.load(f"{mol_inp}_txts/grid-coord.npy")
-      print(f"posgrid: {posgrid.shape}, {np.size(posgrid)}, {posgrid}\n")
+      # print(f"posgrid: {posgrid.shape}, {np.size(posgrid)}, {posgrid}\n")
       if (nkpnt != len(posgrid)):
         with open(f"{mol_out}.txt","a") as writer:
           writer.write(f"Inconsistency in the number of k points in getFort.\n")
@@ -426,12 +426,11 @@ def getFort(mol_inp,mol_out,FreezeCore):
         lenx = ndimk[0]
         leny = ndimk[1]
         lenz = ndimk[2]
-        kgrid = []
         for nz in range(lenz):
           for ny in range(leny):
             for nx in range(lenx):
               kgrid.append([nx+1,ny+1,nz+1])
-      print(f"kgrid: shape {np.array(kgrid).shape}, length {len(kgrid)}, size {np.size(kgrid)}, Nkp {Nkp}\n {kgrid}\n")
+      # print(f"kgrid: shape {np.array(kgrid).shape}, length {len(kgrid)}, size {np.size(kgrid)}, Nkp {Nkp}\n {kgrid}\n")
     # Now expand the MO coefficient across the entire FBZ
     MOCoef0 = np.array(MOCoef).reshape((nkpnt,NB*NB))
     MOCoef = np.zeros((Nkp,NB*NB),dtype=complex)
@@ -448,22 +447,48 @@ def getFort(mol_inp,mol_out,FreezeCore):
       elif(npdir == 2):
         lenx = ndimk[0]
         leny = ndimk[1]
-        ngamma = (lenx)*(leny//2) + lenx//2
+        ngamma = lenx*leny//2 + lenx//2
         MOCoef[ngamma,:] = np.copy(MOCoef0[-1,:])
         for n in range(1,nkpnt-1):
           indf1 = list(posgrid[n])
-          if(indf1[1] == 1):
-            indf2 = [lenx + 2 - indf1[0],1]
-          elif(indf1[0] == 1):
-            indf2 = [1,leny + 2 - indf1[1]]
-          else:
-            indf2 = [lenx + 2 - indf1[0], leny + 2 - indf1[1]]
+          posx = lenx+2-indf1[0]
+          posy = leny+2-indf1[1]
+          if(indf1[0] == 1): posx = 1
+          if(indf1[1] == 1): posy = 1
+          indf2 = [posx,posy]
+          # if(indf1[1] == 1):
+          #   indf2 = [lenx + 2 - indf1[0],1]
+          # elif(indf1[0] == 1):
+          #   indf2 = [1,leny + 2 - indf1[1]]
+          # else:
+          #   indf2 = [lenx + 2 - indf1[0], leny + 2 - indf1[1]]
           indff1 = kgrid.index(indf1)
           indff2 = kgrid.index(indf2)
-          print(f"k-point: {n}, pos:{indf1}, {indf2}, final-ks: {indff1} {indff2}\n")
+          # print(f"k-point: {n+1}, pos:{indf1}, {indf2}, final-ks: {indff1} {indff2}\n")
           MOCoef[indff1,:] = np.copy(MOCoef0[n,:])
           MOCoef[indff2,:] = np.copy(np.conjugate(MOCoef0[n,:]))
-          print(f"MO[k1]: {MOCoef[indff1,1]}\n MO(k2): {MOCoef[indff2,1]}\n")
+          # print(f"MO[k1]: {MOCoef[indff1,1]}\n MO(k2): {MOCoef[indff2,1]}\n")
+      elif(npdir == 3):
+        lenx = ndimk[0]
+        leny = ndimk[1]
+        lenz = ndimk[2]
+        ngamma = lenx*lenz*leny//2 + lenx*leny//2 + lenx//2
+        MOCoef[ngamma,:] = np.copy(MOCoef0[-1,:])
+        for n in range(1,nkpnt-1):
+          indf1 = list(posgrid[n])
+          posx = lenx+2-indf1[0]
+          posy = leny+2-indf1[1]
+          posz = lenz+2-indf1[2]
+          if(indf1[0] == 1): posx = 1
+          if(indf1[1] == 1): posy = 1
+          if(indf1[2] == 1): posz = 1
+          indf2 = [posx,posy,posz]
+          indff1 = kgrid.index(indf1)
+          indff2 = kgrid.index(indf2)
+          # print(f"k-point: {n+1}, pos:{indf1}, {indf2}, final-ks: {indff1} {indff2}\n")
+          MOCoef[indff1,:] = np.copy(MOCoef0[n,:])
+          MOCoef[indff2,:] = np.copy(np.conjugate(MOCoef0[n,:]))
+          # print(f"MO[k1]: {MOCoef[indff1,1]}\n MO(k2): {MOCoef[indff2,1]}\n")
     else:
       # This grid is shifted and does not include the Gamma point and the edges
       if(npdir == 1):
@@ -480,6 +505,19 @@ def getFort(mol_inp,mol_out,FreezeCore):
           indff2 = kgrid.index(indf2)
           MOCoef[indff1,:] = np.copy(MOCoef0[n,:])
           MOCoef[indff2,:] = np.copy(np.conjugate(MOCoef0[n,:]))
+          # print(f"k-point: {n+1}, pos:{indf1}, {indf2}, final-ks: {indff1} {indff2}\n")
+      elif(npdir == 3):
+        lenx = ndimk[0]
+        leny = ndimk[1]
+        lenz = ndimk[2]
+        for n in range(nkpnt):
+          indf1 = list(posgrid[n])
+          indf2 = [lenx+1-indf1[0],leny+1-indf1[1],lenz+1-indf1[2]]
+          indff1 = kgrid.index(indf1)
+          indff2 = kgrid.index(indf2)
+          MOCoef[indff1,:] = np.copy(MOCoef0[n,:])
+          MOCoef[indff2,:] = np.copy(np.conjugate(MOCoef0[n,:]))
+          # print(f"k-point: {n+1}, pos:{indf1}, {indf2}, final-ks: {indff1} {indff2}\n")
     # if(nrecip % 2 == 0):
     #   MOCoef = np.array(MOCoef).reshape((Nkp//2,NB,NB))
     #   MORev = np.flip(MOCoef,axis=0)
@@ -1003,23 +1041,23 @@ def get2e(NB,ipbc,mol_out,eri_file,scratch,path_gauopen):
   #         AOInt[K,L,J,I] = integ
   #         AOInt[L,K,J,I] = integ
   #
-  print(f"inside get2e 1")
+  # print(f"inside get2e 1")
   baf = qcb.QCBinAr(file=f"{eri_file}.baf")
   # baf = bar.BinArFile(debug=True,file=f"{eri_file}.baf")
-  print(f"inside get2e 2")
+  # print(f"inside get2e 2")
   # ERI = np.lib.format.open_memmap(f"{scratch}/{mol_out}-ERI-AO.npy",mode='w+',
   #                                 shape=(NBX,NBX,NBX,NBX)) 
-  print(f"inside get2e 3")
+  # print(f"inside get2e 3")
   ERIsize = NBX**4
   tot_mem, avlb_mem = mem_check()
-  print(f"inside get2e 4: {ERIsize*8/(1024**3)}")
+  # print(f"inside get2e 4: {ERIsize*8/(1024**3)}")
   # if(avlb_mem*(1024**3) > 2*np.size(ERI)*8):
   if(avlb_mem*(1024**3) > 2*ERIsize*8):
     ERI = np.lib.format.open_memmap(f"{scratch}/{mol_out}-ERI-AO.npy",mode='w+',
                                     shape=(NBX,NBX,NBX,NBX)) 
     ERI[:,:,:,:] = baf.matlist["REGULAR 2E INTEGRALS"].expand()
     if(ipbc):
-      print(f"ERI: {ERI.shape}, {np.size(ERI)}")
+      # print(f"ERI: {ERI.shape}, {np.size(ERI)}")
       ERI = ERI.reshape((nmtpbc,NB,nmtpbc,NB,nmtpbc,NB,nmtpbc,NB))
       ERIpbc = np.lib.format.open_memmap(f"{scratch}/{mol_out}-ERI-AO1.npy",
                                          mode='w+',shape=(NB,nmtpbc,NB,nmtpbc,NB,nmtpbc,NB)) 
@@ -1038,7 +1076,7 @@ def get2e(NB,ipbc,mol_out,eri_file,scratch,path_gauopen):
     if(nr != 1):
       print(f"Cannot handle complex AO ERI")
       exit()
-    print(F"ERI0: ntot: {ntot}, nr: {nr}, {ERI0.array.shape} {np.size(ERI0.array)*8/(1024**3)}")
+    # print(F"ERI0: ntot: {ntot}, nr: {nr}, {ERI0.array.shape} {np.size(ERI0.array)*8/(1024**3)}")
     r = ERI0.array.reshape([ntot,nr])
     if(ipbc):
       ERI = np.lib.format.open_memmap(f"{scratch}/{mol_out}-ERI-AO.npy",mode='w+',
@@ -2446,8 +2484,8 @@ def getPert(O,V,NB,ipbc,tv,MOCoef,Fock,pert_type,mol_inp,mol_out):
         Pert = Pert.reshape((Nkp,NOrb*2,Nkp,NOrb*2))
       Pert = np.transpose(Pert,axes=(0,2,1,3))
       for k in range(Nkp):
-        prod = np.einsum('ij,ij',Pert[k,k],np.conjugate(Pert[k,k]),optimize=True)
-        print(f"Kp:{k+1}, Pert-{n+1}: {prod}")
+        # prod = np.einsum('ij,ij',Pert[k,k],np.conjugate(Pert[k,k]),optimize=True)
+        # print(f"Kp:{k+1}, Pert-{n+1}: {prod}")
         X_ij[n,k,k,:,:] = Pert[k,k,:O2,:O2]
         X_ia[n,k,k,:,:] = Pert[k,k,:O2,O2:]
         X_ab[n,k,k,:,:] = Pert[k,k,O2:,O2:]
@@ -2506,11 +2544,11 @@ def getPert(O,V,NB,ipbc,tv,MOCoef,Fock,pert_type,mol_inp,mol_out):
         # mu(L)
         X_ij[n,:,:] = np.conjugate(X_ij[n,:,:])
         X_ab[n,:,:] = np.conjugate(X_ab[n,:,:])
-    for n in range(NP):
-      prodXij = np.einsum('ij,ij',X_ij[n],np.conjugate(X_ij[n]),optimize=True)
-      prodXab = np.einsum('ij,ij',X_ab[n],np.conjugate(X_ab[n]),optimize=True)
-      prodXia = np.einsum('ij,ij',X_ia[n],np.conjugate(X_ia[n]),optimize=True)
-      print(f"Pert:{n+1}, Xij: {prodXij}, Xab: {prodXab}, Xia: {prodXia}")
+    # for n in range(NP):
+    #   prodXij = np.einsum('ij,ij',X_ij[n],np.conjugate(X_ij[n]),optimize=True)
+    #   prodXab = np.einsum('ij,ij',X_ab[n],np.conjugate(X_ab[n]),optimize=True)
+    #   prodXia = np.einsum('ij,ij',X_ia[n],np.conjugate(X_ia[n]),optimize=True)
+    #   print(f"Pert:{n+1}, Xij: {prodXij}, Xab: {prodXab}, Xia: {prodXia}")
   else:
     # Molecular case
     PertSQ  = np.zeros((NP, NB, NB))
@@ -2779,8 +2817,8 @@ def getPert1k(O,V,NB,ipbc,tv,MOCoef,Fock,pert_type,mol_inp,mol_out):
             Pert -= temp
             del temp
     for k in range(Nkp):
-      prod = np.einsum('ij,ij',Pert[k],np.conjugate(Pert[k]),optimize=True)
-      print(f"Kp:{k+1}, Pert-{n+1}: {prod}")
+      # prod = np.einsum('ij,ij',Pert[k],np.conjugate(Pert[k]),optimize=True)
+      # print(f"Kp:{k+1}, Pert-{n+1}: {prod}")
       X_ij[n,k,:,:] = Pert[k,:O2,:O2]
       X_ia[n,k,:,:] = Pert[k,:O2,O2:]
       X_ab[n,k,:,:] = Pert[k,O2:,O2:]
@@ -2845,9 +2883,9 @@ def getPert1k(O,V,NB,ipbc,tv,MOCoef,Fock,pert_type,mol_inp,mol_out):
       # mu(L)
       X_ij[n] = np.conjugate(X_ij[n])
       X_ab[n] = np.conjugate(X_ab[n])
-  for n in range(NP):
-    prodXij = np.einsum('Iij,Iij',X_ij[n],np.conjugate(X_ij[n]),optimize=True)
-    prodXab = np.einsum('Iij,Iij',X_ab[n],np.conjugate(X_ab[n]),optimize=True)
-    prodXia = np.einsum('Iij,Iij',X_ia[n],np.conjugate(X_ia[n]),optimize=True)
-    print(f"Pert:{n+1}, Xij: {prodXij}, Xab: {prodXab}, Xia: {prodXia}")
+  # for n in range(NP):
+  #   prodXij = np.einsum('Iij,Iij',X_ij[n],np.conjugate(X_ij[n]),optimize=True)
+  #   prodXab = np.einsum('Iij,Iij',X_ab[n],np.conjugate(X_ab[n]),optimize=True)
+  #   prodXia = np.einsum('Iij,Iij',X_ia[n],np.conjugate(X_ia[n]),optimize=True)
+  #   print(f"Pert:{n+1}, Xij: {prodXij}, Xab: {prodXab}, Xia: {prodXia}")
   return NP, NP1, NP2, NP3, NP4, X_ij, X_ia, X_ab

@@ -219,10 +219,10 @@ def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
           Fmi = F_mi2
           Fme = F_me2
         t2_f = t2Eq3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,Fae,Fmi,Fme,D2,Method)
-        prod = np.einsum('lae,lae',t1_f,t1_f,optimize=True)
-        print(f"t1 = {prod}")
-        prod = np.einsum('ijklmnq,ijklmnq',t2_f,t2_f,optimize=True)
-        print(f"t2 = {prod}")
+        # prod = np.einsum('lae,lae',t1_f,t1_f,optimize=True)
+        # print(f"t1 = {prod}")
+        # prod = np.einsum('ijklmnq,ijklmnq',t2_f,t2_f,optimize=True)
+        # print(f"t2 = {prod}")
       else:
         tau_tilde = tau_tildeEq(Nkp,t1,t2)
         tau = tauEq(Nkp,t1,t2,Method)
@@ -238,10 +238,10 @@ def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
           Fmi = F_mi2
           Fme = F_me2
         t2_f = t2Eq(mol_out,scratch,Nkp,t1,t2,tau,Fae,Fmi,Fme,D2,Method)
-        prod = np.einsum('ae,ae',t1_f,t1_f,optimize=True)
-        print(f"t1 = {prod}")
-        prod = np.einsum('ijkl,ijkl',t2_f,t2_f,optimize=True)
-        print(f"t2 = {prod}")
+        # prod = np.einsum('ae,ae',t1_f,t1_f,optimize=True)
+        # print(f"t1 = {prod}")
+        # prod = np.einsum('ijkl,ijkl',t2_f,t2_f,optimize=True)
+        # print(f"t2 = {prod}")
       del F_ae,F_mi,F_me
       # Check for convergence
       if(ipbc and Kstore == "compress"):
@@ -307,17 +307,17 @@ def AmpIt(AmpType,mol_out,scratch,O,V,Nkp,MaxIt,ThrE,ThrA,scfE,Fock,
                         F_me,G_ae,G_mi,D1)
         tx2_f = tx2Eq3k(mol_out,scratch,Nkp,Ktable,O,V,tx1,tx2,t1,t2,F_ae,
                         F_mi,F_me,G_ae,G_mi,D2)
-        tx1prod = np.einsum('Iia,Iia->',tx1,np.conjugate(tx1),optimize=True)/Nkp
-        tx2prod = np.einsum('IJAijab,IJAijab->',tx2,np.conjugate(tx2),optimize=True)/Nkp**3
+        # tx1prod = np.einsum('Iia,Iia->',tx1,np.conjugate(tx1),optimize=True)/Nkp
+        # tx2prod = np.einsum('IJAijab,IJAijab->',tx2,np.conjugate(tx2),optimize=True)/Nkp**3
       else:
         G_ae, G_mi = L_Interm(Nkp,IJAB,tx2)
         del IJAB
         # Amplitude iteration
         tx1_f = tx1Eq(mol_out,scratch,Nkp,O,V,tx1,tx2,t1,F_ae,F_mi,F_me,G_ae,G_mi,D1)
         tx2_f = tx2Eq(mol_out,scratch,Nkp,O,V,tx1,tx2,t1,t2,F_ae,F_mi,F_me,G_ae,G_mi,D2)
-        tx1prod = np.einsum('ia,ia->',tx1,np.conjugate(tx1),optimize=True)/Nkp
-        tx2prod = np.einsum('ijab,ijab->',tx2,np.conjugate(tx2),optimize=True)/Nkp**3
-      print(f"tx1: {tx1prod}, tx2: {tx2prod}")
+      #   tx1prod = np.einsum('ia,ia->',tx1,np.conjugate(tx1),optimize=True)/Nkp
+      #   tx2prod = np.einsum('ijab,ijab->',tx2,np.conjugate(tx2),optimize=True)/Nkp**3
+      # print(f"tx1: {tx1prod}, tx2: {tx2prod}")
       tx1_f -= rhs1/D1.real
       tx2_f -= rhs2/D2.real
       # Check for convergence
@@ -546,22 +546,22 @@ def T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau,Method):
   F_ae -= 0.5 * np.einsum('me,ma->ae', Fock[:O2, O2:], t1, optimize=True)
   F_ae += np.einsum('mf,mafe->ae', t1, IABC, optimize=True)/Nkp
   F_ae -= 0.5 * np.einsum('mnaf,mnef->ae',tau_tilde,IJAB,optimize=True)/NkpS
-  prod = np.einsum('ae,ae',F_ae,F_ae,optimize=True)/Nkp
-  print(f"Fae = {prod}")
+  # prod = np.einsum('ae,ae',F_ae,F_ae,optimize=True)/Nkp
+  # print(f"Fae = {prod}")
   # F_mi
   F_mi = np.zeros((O2, O2),dtype=Fock.dtype)
   F_mi += (1 - np.eye(O2)) * Fock[:O2, :O2]
   F_mi += 0.5 * np.einsum('ie,me->mi', t1, Fock[:O2, O2:], optimize=True)
   F_mi -= np.einsum('ne,nmie->mi', t1, IJKA, optimize=True)/Nkp
   F_mi += 0.5 * np.einsum('inef,mnef->mi', tau_tilde, IJAB, optimize=True)/NkpS
-  prod = np.einsum('ae,ae',F_mi,F_mi,optimize=True)/Nkp
-  print(f"Fmi = {prod}")
+  # prod = np.einsum('ae,ae',F_mi,F_mi,optimize=True)/Nkp
+  # print(f"Fmi = {prod}")
   # F_me
   F_me = np.zeros((O2, V2),dtype=Fock.dtype)
   F_me = np.copy(Fock[:O2, O2:])
   F_me += np.einsum('nf,mnef->me', t1, IJAB, optimize=True)/Nkp
-  prod = np.einsum('ae,ae',F_me,F_me,optimize=True)/Nkp
-  print(f"Fme = {prod}")
+  # prod = np.einsum('ae,ae',F_me,F_me,optimize=True)/Nkp
+  # print(f"Fme = {prod}")
   # W_mnij
   W_mnij[:,:,:,:] = np.copy(IJKL)
   W_mnij += np.einsum('je,mnie->mnij', t1, IJKA, optimize=True)
@@ -587,8 +587,8 @@ def T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau,Method):
     W_mbej += np.einsum('nb,mnje->mbej', t1, IJKA, optimize=True)
     W_mbej -= 0.5 * np.einsum('jnfb,mnef->mbej', t2, IJAB, optimize=True)/Nkp
     W_mbej -= np.einsum('jf,nb,mnef->mbej', t1, t1, IJAB, optimize=True)/Nkp
-    prod = np.einsum('ijkl,ijkl',W_mbej,W_mbej,optimize=True)/Nkp**3
-    print(f"Wmbej = {prod}")
+    # prod = np.einsum('ijkl,ijkl',W_mbej,W_mbej,optimize=True)/Nkp**3
+    # print(f"Wmbej = {prod}")
     del W_mbej
   elif(Method == "CC2"):
     X1 = np.einsum('jf,mnef->mnej',t1,IJAB,optimize=True)
@@ -607,8 +607,8 @@ def T_interm(mol_out,scratch,O,V,Nkp,Fock,t1,t2,tau_tilde,tau,Method):
     # F_me (t2)
     F_me2 = np.zeros((O2,V2),dtype=Fock.dtype)
     F_me2 = np.copy(Fock[:O2,O2:])
-  prod = np.einsum('ijkl,ijkl',W_mnij,W_mnij,optimize=True)/Nkp**3
-  print(f"Wmnij = {prod}")
+  # prod = np.einsum('ijkl,ijkl',W_mnij,W_mnij,optimize=True)/Nkp**3
+  # print(f"Wmnij = {prod}")
   del IABC, IJAB, IABJ, IJKL, IJKA, W_mnij
   return F_ae, F_mi, F_me, F_ae2, F_mi2, F_me2
   # return F_ae, F_mi, F_me, W_mnij, W_mbej
@@ -636,22 +636,22 @@ def T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,t1,t2,tau_tilde,tau,Method):
   F_ae -= 0.5 * np.einsum('kme,kma->kae', Fock[:,:O2, O2:],t1,optimize=True)
   F_ae += np.einsum('kmf,knkmafe->nae', t1, IABC, optimize=True)/Nkp
   F_ae -= 0.5 * np.einsum('khlmnaf,khlmnef->lae',tau_tilde,IJAB,optimize=True)/NkpS
-  prod = np.einsum('lae,lae',F_ae,F_ae,optimize=True)/Nkp
-  print(f"Fae = {prod}")
+  # prod = np.einsum('lae,lae',F_ae,F_ae,optimize=True)/Nkp
+  # print(f"Fae = {prod}")
   # F_mi
   F_mi = np.zeros((Nkp,O2, O2),dtype=Fock.dtype)
   F_mi += (1 - np.eye(O2)) * Fock[:,:O2, :O2]
   F_mi += 0.5 * np.einsum('kie,kme->kmi', t1, Fock[:,:O2, O2:], optimize=True)
   F_mi -= np.einsum('kne,kllnmie->lmi', t1, IJKA, optimize=True)/Nkp
   F_mi += 0.5 * np.einsum('khlinef,khlmnef->kmi', tau_tilde, IJAB, optimize=True)/NkpS
-  prod = np.einsum('lae,lae',F_mi,F_mi,optimize=True)/Nkp
-  print(f"Fmi = {prod}")
+  # prod = np.einsum('lae,lae',F_mi,F_mi,optimize=True)/Nkp
+  # print(f"Fmi = {prod}")
   # F_me
   F_me = np.zeros((Nkp,O2,V2),dtype=Fock.dtype)
   F_me = np.copy(Fock[:,:O2,O2:])
   F_me += np.einsum('knf,lklmnef->lme',t1,IJAB, optimize=True)/Nkp
-  prod = np.einsum('lae,lae',F_me,F_me,optimize=True)/Nkp
-  print(f"Fme = {prod}")
+  # prod = np.einsum('lae,lae',F_me,F_me,optimize=True)/Nkp
+  # print(f"Fme = {prod}")
   # F Intermediates for T2 that are only computed during CC2
   F_ae2 = 0 
   F_mi2 = 0
@@ -692,8 +692,8 @@ def T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,t1,t2,tau_tilde,tau,Method):
       W_mbej -= 0.5*np.einsum('hkljnfb,hlmnef->hklmbej',t2NF,IJABN,
                               optimize=True)/Nkp
       del t2NF,KF,IJABN
-    prod = np.einsum('ijklmnq,ijklmnq',W_mbej,W_mbej,optimize=True)/Nkp**3
-    print(f"Wmbej = {prod}")
+    # prod = np.einsum('ijklmnq,ijklmnq',W_mbej,W_mbej,optimize=True)/Nkp**3
+    # print(f"Wmbej = {prod}")
     del W_mbej
   elif(Method == "CC2"):
     W_mnij[:,:,:,:,:,:,:] = np.copy(IJKL)
@@ -718,8 +718,8 @@ def T_interm3k(mol_out,scratch,O,V,Nkp,Ktable,Fock,t1,t2,tau_tilde,tau,Method):
     # F_me
     F_me2 = np.zeros((Nkp,O2,V2),dtype=Fock.dtype)
     F_me2 = np.copy(Fock[:,:O2,O2:])
-  prod = np.einsum('ijklmnq,ijklmnq',W_mnij,W_mnij,optimize=True)/Nkp**3
-  print(f"Wmnij = {prod}")
+  # prod = np.einsum('ijklmnq,ijklmnq',W_mnij,W_mnij,optimize=True)/Nkp**3
+  # print(f"Wmnij = {prod}")
   del IABC, IJAB, IABJ, IJKL, IJKA, W_mnij
   return F_ae, F_mi, F_me, F_ae2, F_mi2, F_me2
   # return F_ae, F_mi, F_me, W_mnij, W_mbej
@@ -994,9 +994,9 @@ def Const_Interm(mol_out,scratch,Nkp,t1,t2,tau,F_ae,F_mi,F_me):
   F_ae -= 0.5*np.einsum('ma,me->ae',t1,F_me,optimize=True)    
   # The sign of this terms is wrong in Gauss' paper
   F_mi += 0.5*np.einsum('me,ie->mi',F_me,t1,optimize=True)
-  fprod1 = np.einsum('ij,ij',F_ae,F_ae,optimize=True)/Nkp
-  fprod2 = np.einsum('ij,ij',F_mi,F_mi,optimize=True)/Nkp
-  print(f"Fae: {fprod1}, Fmi: {fprod2}")
+  # fprod1 = np.einsum('ij,ij',F_ae,F_ae,optimize=True)/Nkp
+  # fprod2 = np.einsum('ij,ij',F_mi,F_mi,optimize=True)/Nkp
+  # print(f"Fae: {fprod1}, Fmi: {fprod2}")
   # Here we are forming the tilde-W_abef intermediate as in the
   # paper, at the cost of doing a o2v4 contraction once. The
   # tilde-W_nmij is already as in the paper, as we already doubled
@@ -1018,9 +1018,9 @@ def Const_Interm(mol_out,scratch,Nkp,t1,t2,tau,F_ae,F_mi,F_me):
     W_abef += 0.5*np.einsum('abmn,efmn->abef',X1,X2,optimize=True)/Nkp
   del X1, X2
   W_mbej += 0.5*np.einsum('nmfe,jnbf->mbej',IJAB,t2,optimize=True)/Nkp
-  wprod1 = np.einsum('abcd,abcd',W_abef,W_abef,optimize=True)/Nkp**3
-  wprod2 = np.einsum('abcd,abcd',W_mbej,W_mbej,optimize=True)/Nkp**3
-  print(f"Wabef: {wprod1}, Wmbej: {wprod2}")
+  # wprod1 = np.einsum('abcd,abcd',W_abef,W_abef,optimize=True)/Nkp**3
+  # wprod2 = np.einsum('abcd,abcd',W_mbej,W_mbej,optimize=True)/Nkp**3
+  # print(f"Wabef: {wprod1}, Wmbej: {wprod2}")
   del W_mbej
   # These intermediates are new
   W_efam[:,:,:,:] = np.einsum('mnef,na->efam',t2,F_me,optimize=True)
@@ -1037,23 +1037,23 @@ def Const_Interm(mol_out,scratch,Nkp,t1,t2,tau,F_ae,F_mi,F_me):
   # Create a temp intermediate
   WW_mbej = -np.einsum('mnef,njbf->mbej',IJAB,t2,optimize=True)/Nkp
   WW_mbej += IABJ
-  wprod1 = np.einsum('abcd,abcd',W_efam,W_efam,optimize=True)/Nkp**3
-  wprod2 = np.einsum('abcd,abcd',W_iemn,W_iemn,optimize=True)/Nkp**3
-  wprod3 = np.einsum('abcd,abcd',WW_mbej,WW_mbej,optimize=True)/Nkp**3
-  print(f"Wefam1: {wprod1}, Wiemn1: {wprod2}, WWmbej: {wprod3}")
+  # wprod1 = np.einsum('abcd,abcd',W_efam,W_efam,optimize=True)/Nkp**3
+  # wprod2 = np.einsum('abcd,abcd',W_iemn,W_iemn,optimize=True)/Nkp**3
+  # wprod3 = np.einsum('abcd,abcd',WW_mbej,WW_mbej,optimize=True)/Nkp**3
+  # print(f"Wefam1: {wprod1}, Wiemn1: {wprod2}, WWmbej: {wprod3}")
   X1 = - np.einsum('ne,nfam->efam',t1,WW_mbej,optimize=True)
   X1 += np.einsum('nega,mnfg->efam',IABC,t2,optimize=True)/Nkp
   X2 = X1 - np.transpose(X1,axes=(1,0,2,3))
   W_efam += X2
-  wprod1 = np.einsum('abcd,abcd',W_efam,W_efam,optimize=True)/Nkp**3
-  print(f"Wefam: {wprod1}")
+  # wprod1 = np.einsum('abcd,abcd',W_efam,W_efam,optimize=True)/Nkp**3
+  # print(f"Wefam: {wprod1}")
   del X1,X2,W_efam
   X1 = np.einsum('mf,iefn->iemn',t1,WW_mbej,optimize=True)
   X1 += np.einsum('iomf,noef->iemn',IJKA,t2,optimize=True)/Nkp
   X2 = X1 - np.transpose(X1,axes=(0,1,3,2))
   W_iemn += X2
-  wprod2 = np.einsum('abcd,abcd',W_iemn,W_iemn,optimize=True)/Nkp**3
-  print(f"Wiemn: {wprod2}")
+  # wprod2 = np.einsum('abcd,abcd',W_iemn,W_iemn,optimize=True)/Nkp**3
+  # print(f"Wiemn: {wprod2}")
   del X1, X2, WW_mbej, W_iemn
   del IABC, IJAB, IABJ, IJKA
   return F_ae, F_mi
@@ -1077,9 +1077,9 @@ def Const_Interm3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me):
   F_ae -= 0.5*np.einsum('Ama,Ame->Aae',t1,F_me,optimize=True)    
   # The sign of this terms is wrong in Gauss' paper
   F_mi += 0.5*np.einsum('Mme,Mie->Mmi',F_me,t1,optimize=True)
-  fprod1 = np.einsum('ijl,ijl',F_ae,F_ae,optimize=True)/Nkp
-  fprod2 = np.einsum('ijl,ijl',F_mi,F_mi,optimize=True)/Nkp
-  print(f"Fae: {fprod1}, Fmi: {fprod2}")
+  # fprod1 = np.einsum('ijl,ijl',F_ae,F_ae,optimize=True)/Nkp
+  # fprod2 = np.einsum('ijl,ijl',F_mi,F_mi,optimize=True)/Nkp
+  # print(f"Fae: {fprod1}, Fmi: {fprod2}")
   # Here we are forming the tilde-W_abef intermediate as in the
   # paper, at the cost of doing a o2v4 contraction once. The
   # tilde-W_nmij is already as in the paper, as we already doubled
@@ -1111,9 +1111,9 @@ def Const_Interm3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me):
     W_mbej += 0.5*np.einsum('MBEnmfe,MBEjnbf->MBEmbej',IJABNF,t2NF,
                             optimize=True)/Nkp
     del F, t2NF, IJABNF
-  wprod1 = np.einsum('ijlabcd,ijlabcd',W_abef,W_abef,optimize=True)/Nkp**3
-  wprod2 = np.einsum('ijlabcd,ijlabcd',W_mbej,W_mbej,optimize=True)/Nkp**3
-  print(f"Wabef: {wprod1}, Wmbej: {wprod2}")
+  # wprod1 = np.einsum('ijlabcd,ijlabcd',W_abef,W_abef,optimize=True)/Nkp**3
+  # wprod2 = np.einsum('ijlabcd,ijlabcd',W_mbej,W_mbej,optimize=True)/Nkp**3
+  # print(f"Wabef: {wprod1}, Wmbej: {wprod2}")
   del W_mbej
   #
   # These intermediates are new
@@ -1175,10 +1175,10 @@ def Const_Interm3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me):
                          optimize=True)/Nkp
     del IJABN, t2N
   del IJAB
-  wprod1 = np.einsum('ijlabcd,ijlabcd',W_efam,W_efam,optimize=True)/Nkp**3
-  wprod2 = np.einsum('ijlabcd,ijlabcd',W_iemn,W_iemn,optimize=True)/Nkp**3
-  wprod3 = np.einsum('ijlabcd,ijlabcd',WW_mbej,WW_mbej,optimize=True)/Nkp**3
-  print(f"Wefam1: {wprod1}, Wiemn1: {wprod2}, WWmbej: {wprod3}")
+  # wprod1 = np.einsum('ijlabcd,ijlabcd',W_efam,W_efam,optimize=True)/Nkp**3
+  # wprod2 = np.einsum('ijlabcd,ijlabcd',W_iemn,W_iemn,optimize=True)/Nkp**3
+  # wprod3 = np.einsum('ijlabcd,ijlabcd',WW_mbej,WW_mbej,optimize=True)/Nkp**3
+  # print(f"Wefam1: {wprod1}, Wiemn1: {wprod2}, WWmbej: {wprod3}")
   #
   # W_efam last piece
   X1 = - np.einsum('Ene,EFAnfam->EFAefam',t1,WW_mbej,optimize=True)
@@ -1192,8 +1192,8 @@ def Const_Interm3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me):
     X1 += np.einsum('EFAnega,EFAmnfg->EFAefam',IABCN,t2N,optimize=True)/Nkp
     del G, t2N, IABCN
   W_efam += X1 - np.transpose(X1,axes=(1,0,2,4,3,5,6))
-  wprod1 = np.einsum('ijlabcd,ijlabcd',W_efam,W_efam,optimize=True)/Nkp**3
-  print(f"Wefam: {wprod1}")
+  # wprod1 = np.einsum('ijlabcd,ijlabcd',W_efam,W_efam,optimize=True)/Nkp**3
+  # print(f"Wefam: {wprod1}")
   del X1, W_efam, IABC
   #
   # W_iemn last piece
@@ -1206,8 +1206,8 @@ def Const_Interm3k(mol_out,scratch,Nkp,Ktable,t1,t2,tau,F_ae,F_mi,F_me):
     t2O = t2[:, O, :][N, IDX_E]  # (I,E,M,n,o,e,f)
     X1 += np.einsum('IMiomf,IEMnoef->IEMiemn',IJKAO,t2O,optimize=True)/ Nkp
   W_iemn += X1 - transpose_l(X1,Ktable,'k')
-  wprod2 = np.einsum('ijlabcd,ijlabcd',W_iemn,W_iemn,optimize=True)/Nkp**3
-  print(f"Wiemn: {wprod2}")
+  # wprod2 = np.einsum('ijlabcd,ijlabcd',W_iemn,W_iemn,optimize=True)/Nkp**3
+  # print(f"Wiemn: {wprod2}")
   del X1, W_iemn, IJKA
   return F_ae, F_mi
 
@@ -1706,11 +1706,11 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi1 = -np.einsum('ijab,jb->ia',X1,tx1,optimize=True)/Nkp
     del X1
     #
-    fmiprod  = np.einsum('ia,ia->',F_mi,np.conjugate(F_mi),optimize=True)
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = 0
-    print(f"Term 1: Fmi= {fmiprod/Nkp}")
-    print(f"Term 1: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # fmiprod  = np.einsum('ia,ia->',F_mi,np.conjugate(F_mi),optimize=True)
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = 0
+    # print(f"Term 1: Fmi= {fmiprod/Nkp}")
+    # print(f"Term 1: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # term 2
     # Xi1 : -Lg(ijdb)t(md)R(kjcb)<mk||ac>
@@ -1719,8 +1719,8 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi1 -= np.einsum('ijmb,jmab->ia',X2,X1,optimize=True)/Nkp
     del X1, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    print(f"Term 2: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # print(f"Term 2: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 3
     # Xi1 : Lg(jibd)R(jkbc)<kd||ca>
@@ -1742,9 +1742,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi2 += np.transpose(X2,axes=(1,0,3,2))
     del Yikdc, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 3: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 3: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 4
     # Xi1 :  1/2R(jkbc)Lg(jkbd)<di||ca>
@@ -1763,9 +1763,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi2 += X2 - np.transpose(X2,axes=(0,1,3,2))
     del Ycd, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 4: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 4: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 5
     # Xi1 : -1/2Lg(id)R(kmcd)<km||ca>
@@ -1786,9 +1786,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi2 += X2 - np.transpose(X2,axes=(0,1,3,2))
     del Zda, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 5: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 5: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 6
     # Xi1 :  1/2Lg(jkbc)R(jmbc)<im||ka>
@@ -1809,9 +1809,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi1 += np.einsum('md,imad->ia',X2,IJAB,optimize=True)/Nkp
     del Ykm, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 6: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 6: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 7
     # Xi1 : -1/2Lg(ka)R(kmcd)<im||cd>
@@ -1834,9 +1834,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi2 += X2 - np.transpose(X2,axes=(1,0,2,3))
     del Zik, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 7: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 7: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 8
     # Xi1 : -1/4Lg(jkac)R(jkbd)<ic||bd>
@@ -1867,9 +1867,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
       Xi2 += np.einsum('ijkm,kmab->ijab',Yimjk,l2,optimize=True)/Nkp
     del Yimjk, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 8: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 8: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 9
     # Xi1 : 1/4Lg(kicd)R(jmcd)<jm||ka>
@@ -1898,9 +1898,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi2 += np.einsum('ijkm,kmab->ijab',Zkijm,IJAB,optimize=True)/Nkp
     del Zkijm, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 9: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 9: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 10
     # Xi2 :  P(ij,ab)Lg(ia)R(kc)<kj||cb>
@@ -1921,9 +1921,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi2 += X2 - np.transpose(X2,axes=(1,0,2,3))
     del X1, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 10: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 10: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 11
     # Xi2 :  P(ij,ab)Lg(ikac)R(mc)<jm||kb>
@@ -1936,9 +1936,9 @@ def Xi(T,mol_out,scratch,Nkp,O2,tx1,tx2,l1,l2,t1,F_ae,F_mi,F_me,D2):
     Xi2 += np.transpose(X2,axes=(1,0,3,2))
     del X1, X2
     #
-    Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
-    Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
-    print(f"Term 11: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+    # Xi1prod = np.einsum('ia,ia->',Xi1,np.conjugate(Xi1),optimize=True)
+    # Xi2prod = np.einsum('ijab,ijab->',Xi2,np.conjugate(Xi2),optimize=True)
+    # print(f"Term 11: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
     #
     # Term 12
     # Xi2 : -Lg(ijcd)R(kc)<kd||ab>
@@ -2018,11 +2018,11 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi1 = -np.einsum('IJIijab,Jjb->Iia',X1,tx1,optimize=True)/Nkp
   del X1, X3
   #
-  fmiprod  = np.einsum('Iia,Iia->',F_mi,np.conjugate(F_mi),optimize=True)
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = 0
-  print(f"Term 1: Fmi= {fmiprod/Nkp}")
-  print(f"Term 1: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # fmiprod  = np.einsum('Iia,Iia->',F_mi,np.conjugate(F_mi),optimize=True)
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = 0
+  # print(f"Term 1: Fmi= {fmiprod/Nkp}")
+  # print(f"Term 1: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 2
   # Xi1 : -Lg(ijdb)t(md)R(kjcb)<mk||ac>
@@ -2040,8 +2040,8 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi1 -= np.einsum('IJlijmb,JIljamb->Iia',X2,X1,optimize=True)/Nkp
   del X1, X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  print(f"Term 2: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # print(f"Term 2: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 3
   # Xi1 : Lg(jibd)R(jkbc)<kd||ca>
@@ -2099,9 +2099,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi2 += np.transpose(transpose_l(X2,Ktable,'k'),axes=(1,0,2,4,3,5,6))
   del Yikdc, X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 3: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 3: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 4
   # Xi1 :  1/2R(jkbc)Lg(jkbd)<di||ca>
@@ -2124,9 +2124,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi2 += X2 - transpose_l(X2,Ktable,'k')
   del Ycd, YcdB, X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 4: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 4: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 5
   # Xi1 : -1/2Lg(id)R(kmcd)<km||ca>
@@ -2151,9 +2151,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi2 += X2 - transpose_l(X2,Ktable,'k')
   del Zda, ZdaB, X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 5: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 5: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 6
   # Xi1 :  1/2Lg(jkbc)R(jmbc)<im||ka>
@@ -2174,9 +2174,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi1 += np.einsum('Mmd,IMIimad->Iia',X2,IJAB,optimize=True)/Nkp
   del Ykm, X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 6: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 6: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 7
   # Xi1 : -1/2Lg(ka)R(kmcd)<im||cd>
@@ -2199,9 +2199,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi2 += X2 - np.transpose(X2,axes=(1,0,2,4,3,5,6))
   del Zik, X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 7: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 7: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 8
   # Xi1 : -1/4Lg(jkac)R(jkbd)<ic||bd>
@@ -2240,9 +2240,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
     del KM, YimjkM, l2M
   del Yimjk
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 8: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 8: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 9
   # Xi1 : 1/4Lg(kicd)R(jmcd)<jm||ka>
@@ -2275,9 +2275,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
     del KM, ZkijmM, IJABM
   del Zkijm
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 9: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 9: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 10
   # Xi2 :  P(ij,ab)Lg(ia)R(kc)<kj||cb>
@@ -2302,9 +2302,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi2 += X2 - np.transpose(X2,axes=(1,0,2,4,3,5,6))
   del X1, X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 10: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 10: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 11
   # Xi2 :  P(ij,ab)Lg(ikac)R(mc)<jm||kb>
@@ -2326,9 +2326,9 @@ def Xi3k(mol_out,scratch,Nkp,Ktable,O2,V2,tx1,tx2,l1,l2,t1,F_ae,F_mi,
   Xi2 += np.transpose(transpose_l(X2,Ktable,'k'),axes=(1,0,2,4,3,5,6))
   del X2
   #
-  Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
-  Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
-  print(f"Term 11: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
+  # Xi1prod = np.einsum('Iia,Iia->',Xi1,np.conjugate(Xi1),optimize=True)
+  # Xi2prod = np.einsum('IJAijab,IJAijab->',Xi2,np.conjugate(Xi2),optimize=True)
+  # print(f"Term 11: Xi1= {Xi1prod/Nkp}, Xi2= {Xi2prod/Nkp**3}")
   #
   # Term 12
   # Xi2 : -Lg(ijcd)R(kc)<kd||ab>
@@ -2481,12 +2481,12 @@ def fill_kl(ipbc):
   else:
     l_list = np.transpose(l_listall,axes=(1,0))
     # l_list = l_listall
-  print(f"l_list : npdir = {npdir}, length {len(l_list)}\n {l_list}\n")
+  # print(f"l_list : npdir = {npdir}, length {len(l_list)}\n {l_list}\n")
   # Read number of k points in each direction from ipbc
   shift = ipbc[11]
   ndimk = ipbc[12:15]
   # ndimk = [4,6,0]
-  print(f"ndimk: {ndimk}, max {max(ndimk)}\n")
+  # print(f"ndimk: {ndimk}, max {max(ndimk)}\n")
   # exit()
   # #Build l_list
   # l_list = [0]
@@ -2530,7 +2530,7 @@ def fill_kl(ipbc):
     #   kp = np.array(kp).reshape((ndimk[0],ndimk[1]))
   # kp = np.array(kp)
   # print(f"kp1 : Nkp= {Nkp}, shape {kp.shape}, length {len(kp)}, size {np.size(kp)}\n {kp}\n")
-  print(f"kp1 : Nkp= {Nkp}, \n {kp}\n")
+  # print(f"kp1 : Nkp= {Nkp}, \n {kp}\n")
   # exit()
   # #Build kp
   # kp = []
@@ -2627,15 +2627,15 @@ def reciprocal(npdir,tv):
     #    sin(90°) = 1, cos(90°) = 0  ->  R = I + K + K^2
     I = np.eye(3)
     rot = I + K + K @ K
-    print(f"Rot: I: {I}\n K: {K}\n rot: {rot}\n")
+    # print(f"Rot: I: {I}\n K: {K}\n rot: {rot}\n")
     # Now form reciprocal vectors
     b_vecs = np.zeros((2,3))
     for n in range(npdir):
       n1 = (n+1)%npdir
       rot_a = np.einsum('ij,j->i',rot,tv[n1],optimize=True)
-      print(f"n1: {n1}, rot_a: {rot_a}")
+      # print(f"n1: {n1}, rot_a: {rot_a}")
       b_vecs[n,:] = two_pi*rot_a/np.dot(tv[n],rot_a)
-      print(f"b_vecs: {b_vecs[n,:]}")
+      # print(f"b_vecs: {b_vecs[n,:]}")
   elif(npdir == 3):
     Vol = np.dot(tv[0],np.cross(tv[1],tv[2]))
     fact = two_pi/Vol
